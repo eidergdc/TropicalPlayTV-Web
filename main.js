@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.3.4";
+    const APP_VERSION = "1.3.5";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1015,166 +1015,6 @@
         });
     }
 
-    // --- Diagnostico na Samsung (temporario) ----------------------------------------
-    //
-    // A tela cheia fica preta (com som) na Samsung dentro do MSX, pelo player do
-    // navegador e depois de carregar o AVPlay. Sem acesso a TV, este painel mostra o que
-    // a pagina ve: se o MSX a abriu dentro de um quadro, se o AVPlay carregou, qual player
-    // esta tocando, o estado de cada video e os fundos. So aparece na Samsung (Tizen).
-    function iniciarDiagnosticoTizen() {
-        if (!/Tizen/i.test(navigator.userAgent || "") || !document.body) {
-            return;
-        }
-        const painel = document.createElement("div");
-        painel.id = "diagnosticoTizen";
-        painel.setAttribute(
-            "style",
-            "position:fixed;left:12px;bottom:12px;z-index:2147483647;max-width:900px;padding:10px 14px;" +
-                "background:rgba(0,0,0,0.78);color:#9ff59f;font:15px/1.35 monospace;white-space:pre-wrap;" +
-                "border:1px solid #9ff59f;border-radius:8px;pointer-events:none"
-        );
-        document.body.appendChild(painel);
-
-        function simNao(valor) {
-            return valor ? "sim" : "nao";
-        }
-        function emQuadro() {
-            try {
-                return simNao(window.self !== window.top);
-            } catch (error) {
-                return "sim (bloqueado)";
-            }
-        }
-        function descreverVideo(video) {
-            if (!video) {
-                return "-";
-            }
-            return (
-                "rs=" + video.readyState +
-                " " + video.videoWidth + "x" + video.videoHeight +
-                " t=" + (video.currentTime || 0).toFixed(1) +
-                (video.paused ? " pausado" : " tocando") +
-                " src=" + String(video.currentSrc || "").slice(0, 12)
-            );
-        }
-        // Modos de tela cheia para testar na TV, trocados pelas teclas 1 a 4 com o player
-        // aberto. O video toca (painel: rs=4, tempo andando) com os fundos transparentes,
-        // mas a Samsung nao o mostra em tela cheia; a previa, pequena, aparece.
-        // Rodada 1.1.8: normal, Fullscreen API (TypeError), 2px menor e contain - todos
-        // pretos. A previa pequena aparece. Rodada 1.1.9: o video fica pequeno no layout e
-        // e ampliado por transform ate a tela inteira.
-        //
-        // Rodada 1.2.0: as rodadas anteriores trocavam o modo COM o video tocando, e a
-        // Samsung fixa onde desenha o video quando ele comeca (visto na 1.1.4) - o teste
-        // nao valia. Agora cada troca reinicia o video ja no arranjo novo.
-        //   1 = como esta
-        //   2 = player como parte da pagina (absolute), nao camada fixa por cima
-        //   3 = video 960x540 ampliado 2x
-        //   4 = player absolute + video 960x540 ampliado 2x
-        let modoTelaCheia = 1;
-        const NOMES_DOS_MODOS = { 1: "normal", 2: "player absolute", 3: "960x540 x2", 4: "absolute + 960x540 x2" };
-        function sairDaTelaCheiaDoNavegador() {
-            try {
-                const saida = document.exitFullscreen || document.webkitExitFullscreen;
-                if ((document.fullscreenElement || document.webkitFullscreenElement) && saida) {
-                    saida.call(document);
-                }
-            } catch (error) {
-                console.log("exitFullscreen:", error);
-            }
-        }
-        function aplicarModoTelaCheia(modo) {
-            modoTelaCheia = modo;
-            const raiz = document.documentElement;
-            raiz.classList.toggle("tela-absolute", modo === 2 || modo === 4);
-            raiz.classList.toggle("tela-x2", modo === 3 || modo === 4);
-            sairDaTelaCheiaDoNavegador();
-        }
-        let ultimoErroDoModo = "";
-        document.addEventListener(
-            "keydown",
-            function (event) {
-                if (!state.player.open || !/^[1-4]$/.test(String(event.key || ""))) {
-                    return;
-                }
-                event.preventDefault();
-                event.stopPropagation();
-                if (event.stopImmediatePropagation) {
-                    event.stopImmediatePropagation();
-                }
-                ultimoErroDoModo = "";
-                aplicarModoTelaCheia(Number(event.key));
-                atualizar();
-            },
-            true
-        );
-
-        function fundo(elemento) {
-            return elemento ? getComputedStyle(elemento).backgroundColor : "-";
-        }
-        // Rodizio automatico dos modos com o player aberto, a cada 8 s: as teclas
-        // numericas podem nao chegar a pagina dentro do MSX.
-        let playerAbertoDesde = 0;
-        function rodizioDosModos() {
-            if (!state.player.open) {
-                if (playerAbertoDesde) {
-                    playerAbertoDesde = 0;
-                    aplicarModoTelaCheia(1);
-                }
-                return;
-            }
-            if (!playerAbertoDesde) {
-                playerAbertoDesde = Date.now();
-                return;
-            }
-            const modo = (Math.floor((Date.now() - playerAbertoDesde) / 12000) % 4) + 1;
-            if (modo !== modoTelaCheia) {
-                ultimoErroDoModo = "";
-                aplicarModoTelaCheia(modo);
-                // Recomeca o video ja no arranjo novo: e no inicio que a TV decide onde
-                // desenhar.
-                if (state.player.url && state.player.engine === "html5") {
-                    attachPlayerSource(state.player.url);
-                }
-            }
-        }
-
-        function atualizar() {
-            const avplay = nativeAvplay();
-            let estadoAvplay = "-";
-            if (avplay) {
-                try {
-                    estadoAvplay = avplay.getState();
-                } catch (error) {
-                    estadoAvplay = "erro " + (error && error.name);
-                }
-            }
-            const previa = dom.detailCard ? dom.detailCard.querySelector(".detail-preview-video") : null;
-            painel.textContent = [
-                "DIAGNOSTICO " + APP_VERSION + "  quadro(iframe): " + emQuadro() + "  " + location.protocol,
-                "tizen: " + simNao(window.tizen) + "  webapis: " + simNao(window.webapis) + "  avplay: " + simNao(avplay) + " (" + estadoAvplay + ")",
-                "webapis.js: " + (window.__webapis ? window.__webapis.carga : "-") +
-                    "  antes: " + (window.__webapis ? window.__webapis.antes : "-").slice(0, 60) +
-                    "  agora: " + (window.webapis ? Object.keys(window.webapis).join(",") : "nada").slice(0, 90),
-                "player aberto: " + simNao(state.player.open) + "  motor: " + (state.player.engine || "-") +
-                    "  previa nativa: " + simNao(state.nativePreview && state.nativePreview.active),
-                "video player: " + descreverVideo(dom.playerVideo),
-                "video previa: " + descreverVideo(previa),
-                "fundo html " + fundo(document.documentElement) + " body " + fundo(document.body) +
-                    " player " + fundo(dom.playerOverlay),
-                "tela " + window.innerWidth + "x" + window.innerHeight + " dpr " + (window.devicePixelRatio || 1),
-                "tela cheia por copia: " + simNao(document.documentElement.classList.contains("previa-gigante")) +
-                    "  player e area sem recorte (overflow): " +
-                    (dom.playerOverlay ? getComputedStyle(dom.playerOverlay).overflow : "-") + " / " +
-                    (dom.playerOverlay && dom.playerOverlay.querySelector(".player-stage")
-                        ? getComputedStyle(dom.playerOverlay.querySelector(".player-stage")).overflow
-                        : "-"),
-            ].join("\n");
-        }
-        atualizar();
-        setInterval(atualizar, 1000);
-    }
-
     // Samsung: o <video> do player vai para o corpo da pagina, como primeiro filho - o
     // mesmo arranjo da pagina de teste que mostrou video em tela cheia nesta TV (1.3.0,
     // 1.3.1). Dentro do player ele fica sob o app-shell, com o catalogo, os paineis e as
@@ -1191,7 +1031,6 @@
     function bindEvents() {
         videoDaSamsungNoCorpo();
         prenderVoltarDoMsx();
-        iniciarDiagnosticoTizen();
         document.addEventListener("keydown", onKeyDown, true);
         document.addEventListener("keyup", onKeyUp, true);
         window.addEventListener("resize", scheduleNativePlayerLayoutSync);
@@ -4104,6 +3943,7 @@
         focusPlayerOverlay();
         attachPlayerSource(playerState.url);
         startPlayerStallMonitor();
+        showPlayerControls();
     }
 
     function closePlayer() {
@@ -4121,7 +3961,7 @@
         if (!shouldKeepLivePreview) {
             stopNativePlayer();
         }
-        const voltouParaPrevia = devolverPreviaNoCorpo() || desfazerPreviaGigante() || devolverPlayerParaPrevia();
+        const voltouParaPrevia = devolverPreviaNoCorpo() || devolverPlayerParaPrevia();
         if (!voltouParaPrevia) {
             destroyManagedHls("player");
             resetVideoElement(dom.playerVideo);
@@ -4172,6 +4012,10 @@
         }
         renderPlayer();
         blurPlayerOverlay();
+        if (listaPrecisaRedesenhar && state.screen === "catalog") {
+            listaPrecisaRedesenhar = false;
+            renderCatalogScreen();
+        }
         if (state.screen === "catalog") {
             if (shouldKeepLivePreview) {
                 syncNativePreviewAfterPaint();
@@ -4422,11 +4266,25 @@
     }
 
     function playerControlActions() {
+        // A ordem acompanha as pilulas do index.html. "oculta" some da barra.
         if (state.player.mediaKind === "image") {
             return [
                 { id: "rewind", enabled: false },
                 { id: "toggle", enabled: false },
                 { id: "forward", enabled: false },
+                { id: "favorite", enabled: false, oculta: true },
+                { id: "close", enabled: true },
+            ];
+        }
+
+        // Canal ao vivo: so Favoritar e Voltar. Nao ha para onde adiantar ou voltar 10s, e
+        // ninguem pausa ao vivo (a tecla de pausa do controle continua valendo).
+        if (isLiveLikeCatalogType(state.player.type)) {
+            return [
+                { id: "rewind", enabled: false, oculta: true },
+                { id: "toggle", enabled: false, oculta: true },
+                { id: "forward", enabled: false, oculta: true },
+                { id: "favorite", enabled: Boolean(state.player.itemSnapshot) },
                 { id: "close", enabled: true },
             ];
         }
@@ -4435,6 +4293,7 @@
             { id: "rewind", enabled: state.player.canSeek },
             { id: "toggle", enabled: true },
             { id: "forward", enabled: state.player.canSeek },
+            { id: "favorite", enabled: false, oculta: true },
             { id: "close", enabled: true },
         ];
     }
@@ -4541,7 +4400,46 @@
             return;
         }
 
+        if (action.id === "favorite") {
+            favoritarNoPlayer();
+            return;
+        }
+
         togglePlayPause();
+    }
+
+    // Favoritar o canal sem sair do player (barra do canal ao vivo).
+    let listaPrecisaRedesenhar = false;
+
+    function favoritarNoPlayer() {
+        const item = state.player.itemSnapshot;
+        if (!item) {
+            return;
+        }
+        if (!currentFavoriteScope()) {
+            showToast("Conecte um servidor para salvar favoritos nesta TV.", "error");
+            return;
+        }
+        const adicionado = toggleFavoriteItem(item);
+        listaPrecisaRedesenhar = true;
+        showToast(adicionado ? "Canal adicionado aos favoritos." : "Canal removido dos favoritos.", "success");
+        showPlayerControls();
+    }
+
+    function atualizarBarraDoPlayer() {
+        if (!dom.playerControlNodes) {
+            return;
+        }
+        const acoes = playerControlActions();
+        dom.playerControlNodes.forEach(function (no, indice) {
+            const acao = acoes[indice];
+            no.classList.toggle("pilula-oculta", Boolean(acao && acao.oculta));
+        });
+        const chave = document.getElementById("playerFavoriteKey");
+        const rotulo = document.getElementById("playerFavoriteLabel");
+        const favorito = Boolean(state.player.itemSnapshot && isItemFavorited(state.player.itemSnapshot));
+        if (chave) chave.textContent = favorito ? "\u2665" : "\u2661";
+        if (rotulo) rotulo.textContent = favorito ? "Remover favorito" : "Favoritar";
     }
 
     function seekPlayerBy(seconds) {
@@ -4721,9 +4619,8 @@
         previaPromovidaNoCorpo = { url: playerState.url, chave: state.catalog.detailKey };
         state.player.engine = "html5";
         state.player.paused = dom.playerVideo.paused;
-        renderPlayer();
-        focusPlayerOverlay();
         startPlayerStallMonitor();
+        showPlayerControls();
         return true;
     }
 
@@ -4783,117 +4680,8 @@
         return !/Tizen/i.test(navigator.userAgent || "");
     }
 
-    // Tela cheia na Samsung dentro do MSX (1.2.3). Os testes 1.1.4 a 1.2.2 mostraram que
-    // ali todo <video> que comeca grande fica preto (com som), ate a propria previa
-    // recomecada em 1920x1080; so o video pequeno aparece. Entao a previa continua
-    // pequena, tocando, e um <canvas> em tela cheia copia cada quadro dela ampliado. A TV
-    // so ve um video pequeno; o cliente ve tela cheia - e sem recarregar o canal.
-    let previaGigante = null;
-    let telaDeCopia = null;
-    let lacoDaCopia = 0;
-
-    function copiarQuadros(video) {
-        if (!telaDeCopia) {
-            telaDeCopia = document.createElement("canvas");
-            telaDeCopia.id = "telaCheiaPorCopia";
-            // Resolucao interna de 720p, esticada pelo CSS: metade do trabalho de 1080p.
-            telaDeCopia.width = 1280;
-            telaDeCopia.height = 720;
-            document.body.appendChild(telaDeCopia);
-        }
-        const contexto = telaDeCopia.getContext("2d");
-        telaDeCopia.style.display = "block";
-        function quadro() {
-            if (!previaGigante) {
-                return;
-            }
-            if (video.readyState >= 2) {
-                try {
-                    contexto.drawImage(video, 0, 0, telaDeCopia.width, telaDeCopia.height);
-                } catch (error) {
-                    console.log("Copia do quadro falhou:", error);
-                }
-            }
-            lacoDaCopia = window.requestAnimationFrame(quadro);
-        }
-        quadro();
-    }
-
-    function esticarPrevia(video) {
-        const moldura = video.closest(".detail-preview-shell") || video;
-        const caixa = moldura.getBoundingClientRect();
-        document.documentElement.classList.add("previa-gigante");
-        if (!(caixa.width > 0 && caixa.height > 0)) {
-            return;
-        }
-        moldura.style.transformOrigin = "0 0";
-        moldura.style.transform =
-            "translate(" + -caixa.left + "px, " + -caixa.top + "px) " +
-            "scale(" + 1920 / caixa.width + ", " + 1080 / caixa.height + ")";
-    }
-
-    function desfazerEsticada(video) {
-        const moldura = video && video.closest ? video.closest(".detail-preview-shell") : null;
-        if (moldura) {
-            moldura.style.transform = "";
-            moldura.style.transformOrigin = "";
-        }
-    }
-
-    function pararCopia() {
-        if (lacoDaCopia) {
-            window.cancelAnimationFrame(lacoDaCopia);
-            lacoDaCopia = 0;
-        }
-        if (telaDeCopia) {
-            telaDeCopia.style.display = "none";
-        }
-    }
-
-    function previaGiganteNaSamsung(playerState) {
-        // Desligada na 1.3.2: esticar a previa deixava a imagem no canto (1.2.9) e a
-        // copia por canvas ficava preta (1.2.3). Por https a Samsung mostra o video em tela
-        // cheia, entao o player abre normal.
-        if (
-            true ||
-            previaPodeIrParaTelaCheia() ||
-            playerState.mediaKind === "image" ||
-            !isLiveLikeCatalogType(playerState.type) ||
-            !previaHtml ||
-            previaHtml.url !== playerState.url ||
-            !previaHtml.elemento ||
-            !previaHtml.elemento.isConnected
-        ) {
-            return false;
-        }
-        previaGigante = { url: playerState.url, elemento: previaHtml.elemento };
-        esticarPrevia(previaHtml.elemento);
-        state.player.engine = "html5";
-        renderPlayer();
-        focusPlayerOverlay();
-        return true;
-    }
-
-    function desfazerPreviaGigante() {
-        if (!previaGigante) {
-            return false;
-        }
-        const desfeita = previaGigante;
-        previaGigante = null;
-        document.documentElement.classList.remove("previa-gigante");
-        desfazerEsticada(desfeita.elemento);
-        pararCopia();
-        if (desfeita.elemento.isConnected) {
-            previaHtml = { url: desfeita.url, elemento: desfeita.elemento };
-        }
-        return true;
-    }
-
     function promoverPreviaParaPlayer(playerState) {
         if (promoverPreviaNoCorpo(playerState)) {
-            return true;
-        }
-        if (previaGiganteNaSamsung(playerState)) {
             return true;
         }
         if (
@@ -4931,9 +4719,8 @@
 
         state.player.engine = "html5";
         state.player.paused = previa.paused;
-        renderPlayer();
-        focusPlayerOverlay();
         startPlayerStallMonitor();
+        showPlayerControls();
         return true;
     }
 
@@ -6398,6 +6185,10 @@
         }
     }
 
+    // A barra do player some sozinha depois deste tempo sem tecla. Antes ela so era
+    // armada pelo AVPlay da Samsung empacotada; no player web ficava na tela para sempre.
+    const TEMPO_DA_BARRA_MS = 10000;
+
     function showPlayerControls(persistent) {
         if (!state.player.open) {
             return;
@@ -6424,7 +6215,7 @@
             }
             state.player.controlsVisible = false;
             renderPlayer();
-        }, 4200);
+        }, TEMPO_DA_BARRA_MS);
     }
 
     function safePlayerDuration() {
@@ -6783,12 +6574,7 @@
         const label = "Versao " + APP_VERSION;
 
         if (dom.loginAppVersion) {
-            // Na entrada vai tambem a tela que o aparelho entregou e a escala aplicada:
-            // e o que diz, olhando a TV, se a pagina carregada ja e a que se ajusta.
-            const tela = window.__telaDoApp;
-            dom.loginAppVersion.textContent = tela
-                ? label + "  •  tela " + tela.largura + "x" + tela.altura + "  •  escala " + tela.escala.toFixed(2)
-                : label;
+            dom.loginAppVersion.textContent = label;
         }
 
         if (dom.homeAppVersion) {
@@ -8645,6 +8431,7 @@
         dom.playerProgressRow.classList.toggle("is-focused", progressFocused);
         dom.playerToggleLabel.textContent = isImagePlayer ? "Fechar" : state.player.paused ? "Continuar" : "Pausar";
         dom.playerHud.classList.toggle("is-visible", hudVisible);
+        atualizarBarraDoPlayer();
         setFocusedState(dom.playerControlNodes, state.player.controlIndex, hudVisible && !progressFocused, "playerControls");
         renderPlayerRecovery();
         scheduleNativePlayerLayoutSync();
@@ -12435,10 +12222,9 @@
         return typeMeta ? typeMeta.displayTitle || typeMeta.title : "";
     }
 
-    // Pagina https pedindo ao painel Xtream em http - o caso da Samsung, onde o app abre
-    // por https para ter o AVPlay. Ali o fetch e barrado como conteudo misto e nenhum
-    // servidor conectava (teste da 1.2.4); o XMLHttpRequest passa, e e o que o SmartMSX
-    // usa na mesma TV. Devolve um objeto com a cara da Response que o resto do app le.
+    // Pagina https pedindo ao painel Xtream em http - o caso da Samsung, que abre o app
+    // por https (so assim mostra video em tela cheia). Ali a TV barra o pedido, por fetch
+    // e por XMLHttpRequest; ele vai pela ponte do Firebase (urlPelaPonte).
     function pedidoMisto(url) {
         return window.location.protocol === "https:" && /^http:/i.test(String(url || ""));
     }
@@ -12451,51 +12237,6 @@
     function urlPelaPonte(url) {
         const codigo = String(state.code || (state.profile && state.profile.userNumber) || "").trim();
         return PONTE_DAS_LISTAS + "?code=" + encodeURIComponent(codigo) + "&url=" + encodeURIComponent(url);
-    }
-
-    function pedirPorXhr(url, acceptHeader, controller) {
-        return new Promise(function (resolver, rejeitar) {
-            const pedido = new XMLHttpRequest();
-            pedido.open("GET", url, true);
-            try {
-                pedido.setRequestHeader("Accept", acceptHeader);
-            } catch (error) {
-                console.log("Accept no XHR ignorado:", error);
-            }
-            pedido.onload = function () {
-                const corpo = pedido.responseText || "";
-                resolver({
-                    ok: pedido.status >= 200 && pedido.status < 300,
-                    status: pedido.status,
-                    text: function () {
-                        return Promise.resolve(corpo);
-                    },
-                    json: function () {
-                        return new Promise(function (ok, falha) {
-                            try {
-                                ok(JSON.parse(corpo));
-                            } catch (error) {
-                                falha(error);
-                            }
-                        });
-                    },
-                });
-            };
-            pedido.onerror = function () {
-                rejeitar(new TypeError("Failed to fetch"));
-            };
-            pedido.onabort = function () {
-                const erro = new Error("abortado");
-                erro.name = "AbortError";
-                rejeitar(erro);
-            };
-            if (controller && controller.signal) {
-                controller.signal.addEventListener("abort", function () {
-                    pedido.abort();
-                });
-            }
-            pedido.send();
-        });
     }
 
     async function fetchWithTimeout(url, acceptHeader) {

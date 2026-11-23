@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.3.4">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.3.5">
     <style>
     /* Escala do app (ver o script abaixo): o corpo tem sempre 1920x1080 e encolhe ou
        cresce por transform. vw/vh do style.css viram --vw/--vh, 1% desse 1920x1080. */
@@ -46,7 +46,6 @@
             raiz.style.setProperty("--app-dy", ((altura - ALTURA * escala) / 2) + "px");
             raiz.style.setProperty("--vw", (LARGURA / 100) + "px");
             raiz.style.setProperty("--vh", (ALTURA / 100) + "px");
-            window.__telaDoApp = { largura: largura, altura: altura, escala: escala };
         }
         ajustarEscala();
         window.addEventListener("resize", ajustarEscala);
@@ -74,22 +73,17 @@
     // SmartMSX faz. Com ela o app usa o AVPlay, para o qual foi feito: tela cheia e a
     // passagem da previa sem recarregar. Sem ela, o player do navegador da Samsung
     // deixava a tela cheia preta. Fora da Samsung nao carrega nada.
-    // Diagnostico 1.2.6: registra se o webapis.js carregou ou falhou, e o que havia em
-    // window.webapis antes dele (o MSX pode deixar um webapis proprio, sem o AVPlay).
-    window.__webapis = { antes: window.webapis ? Object.keys(window.webapis).join(",") : "nada", carga: "-" };
+    // Dentro do MSX a biblioteca carrega, mas sem o AVPlay (diagnostico 1.2.7); fica
+    // para o caso de alguma Samsung entrega-lo - ai o app usa o AVPlay sozinho.
     if (/Tizen/i.test(navigator.userAgent || "")) {
-        window.__webapis.carga = "pedida";
-        document.write(
-            '<script src="$WEBAPIS/webapis/webapis.js" ' +
-                'onload="window.__webapis.carga=\'carregou\'" onerror="window.__webapis.carga=\'falhou\'"><\/script>'
-        );
+        document.write('<script src="$WEBAPIS/webapis/webapis.js"><\/script>');
     }
     </script>
     <script src="lib/firebase-app.js"></script>
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.3.4" defer></script>
+    <script src="./main.js?v=1.3.5" defer></script>
 </head>
 <body>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">
@@ -422,6 +416,10 @@
                         <div class="player-control-pill" data-player-action="forward">
                             <span class="player-control-key">10s ▶</span>
                             <span class="player-control-label">Adiantar</span>
+                        </div>
+                        <div class="player-control-pill player-control-pill-favorito" data-player-action="favorite">
+                            <span class="player-control-key" id="playerFavoriteKey">&#9825;</span>
+                            <span class="player-control-label" id="playerFavoriteLabel">Favoritar</span>
                         </div>
                         <div class="player-control-pill" data-player-action="close">
                             <span class="player-control-key">Return</span>

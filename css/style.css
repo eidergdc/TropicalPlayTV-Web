@@ -3694,42 +3694,6 @@ html.app-escalado .player-stage {
     overflow: visible !important;
 }
 
-/* Tela cheia na Samsung (1.2.9): a previa, tocando, e esticada por transform (no
-   main.js) ate cobrir a tela. Some todo o resto do catalogo; os ancestrais param de
-   recortar; o player fica transparente por cima, so com os controles. */
-html.previa-gigante .topbar,
-html.previa-gigante .footer-hint,
-html.previa-gigante .catalog-sidebar,
-html.previa-gigante .item-list,
-html.previa-gigante .detail-card > *:not(.detail-preview-shell),
-html.previa-gigante .detail-preview-fallback,
-html.previa-gigante .detail-preview-shade {
-    visibility: hidden !important;
-}
-html.previa-gigante .screen-stack,
-html.previa-gigante .catalog-screen,
-html.previa-gigante .catalog-grid,
-html.previa-gigante .catalog-main,
-html.previa-gigante .detail-card {
-    overflow: visible !important;
-    background: transparent !important;
-    border-color: transparent !important;
-    box-shadow: none !important;
-}
-html.previa-gigante .detail-preview-shell {
-    position: relative;
-    z-index: 9998;
-    border-radius: 0 !important;
-}
-html.previa-gigante .player-overlay,
-html.previa-gigante .player-stage,
-html.previa-gigante .player-video {
-    background: transparent !important;
-}
-html.previa-gigante .player-video {
-    display: none !important;
-}
-
 /* Samsung (1.3.3/1.3.4): o <video> do player e filho direto do body
    (videoDaSamsungNoCorpo), como na pagina de teste que mostrou tela cheia. Ele faz a
    previa, sobre a moldura dela (--pv-*, z-index acima do catalogo), e a tela cheia, so
@@ -3775,5 +3739,11 @@ html.video-no-corpo[data-player-engine="html5"] .player-stage {
 }
 html.video-no-corpo[data-player-engine="html5"] .app-shell::before,
 html.video-no-corpo[data-player-engine="html5"] .app-shell::after {
+    display: none !important;
+}
+
+/* Barra do player: pilulas que nao valem para o conteudo (no canal ao vivo, voltar e
+   adiantar 10s e pausar) somem em vez de aparecer apagadas. */
+.player-control-pill.pilula-oculta {
     display: none !important;
 }
