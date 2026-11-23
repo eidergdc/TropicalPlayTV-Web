@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.3.5";
+    const APP_VERSION = "1.3.6";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1028,7 +1028,186 @@
         document.documentElement.classList.add("video-no-corpo");
     }
 
+    // --- Mouse e toque ------------------------------------------------------------------
+    //
+    // O app foi feito para o controle remoto: um foco que as setas movem e o OK aciona. No
+    // computador e no celular (tv.tropicalplaytv.com pelo navegador) cada item clicado ou
+    // tocado leva o foco ate ele e aciona o OK; a roda do mouse e o deslizar viram setas; e
+    // um botao Voltar aparece na tela, porque computador e celular nao tem o Voltar do
+    // controle. Os nos de foco vem etiquetados por setFocusedState.
+    function teclaSintetica(tecla) {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: tecla, bubbles: true, cancelable: true }));
+        document.dispatchEvent(new KeyboardEvent("keyup", { key: tecla, bubbles: true, cancelable: true }));
+    }
+
+    // Cada grupo: leva o foco ao indice. Devolve true quando ja resolveu sozinho (sem OK).
+    const FOCO_POR_PONTEIRO = {
+        homeCards: function (i) {
+            state.homeFocusZone = "cards";
+            state.homeCardIndex = i;
+            syncHomeFocus();
+        },
+        homeActions: function (i) {
+            state.homeFocusZone = "actions";
+            state.homeActionIndex = i;
+            syncHomeFocus();
+        },
+        code: function (i) {
+            state.codeKeyIndex = i;
+            syncCodeFocus();
+        },
+        servers: function (i) {
+            state.serverIndex = i;
+            syncServerFocus();
+        },
+        settings: function (i) {
+            state.settingsIndex = i;
+            syncSettingsFocus();
+        },
+        catalogCategories: function (i) {
+            state.catalog.zone = "categories";
+            state.catalog.categoryIndex = i;
+            if (catalogUsesSelectionModel()) {
+                syncCatalogFocus();
+                openFocusedSelectionCategory();
+            } else {
+                state.catalog.itemIndex = 0;
+                ensureItemsForCurrentCategory().then(renderCatalogScreen);
+                renderCatalogScreen();
+            }
+            return true;
+        },
+        catalogItems: function (i) {
+            state.catalog.zone = "items";
+            state.catalog.itemIndex = (state.catalog.itemWindowStartIndex || 0) + i;
+            syncCatalogFocus();
+        },
+        catalogDetailActions: function (i) {
+            state.catalog.detailActionIndex = i;
+            if ("seriesDetailFocusZone" in state.catalog) {
+                state.catalog.seriesDetailFocusZone = "actions";
+            }
+        },
+        seriesSeasons: function (i) {
+            state.catalog.seriesDetailFocusZone = "seasons";
+            state.catalog.seriesDetailSeasonIndex = i;
+        },
+        seriesEpisodes: function (i) {
+            state.catalog.seriesDetailFocusZone = "episodes";
+            state.catalog.seriesDetailEpisodeIndex = i;
+        },
+        searchKeys: function (i) {
+            state.searchPrompt.keyIndex = i;
+        },
+        resumeActions: function (i) {
+            state.resumePrompt.optionIndex = i;
+        },
+        playerControls: function (i) {
+            state.player.controlIndex = i;
+            runFocusedPlayerControl();
+            return true;
+        },
+    };
+
+    function marcarPonteiro() {
+        document.documentElement.classList.add("com-ponteiro");
+    }
+
+    function cliqueOuToque(event) {
+        marcarPonteiro();
+        if (event.target && event.target.closest && event.target.closest("input, textarea, select")) {
+            return;
+        }
+        if (event.target && event.target.closest && event.target.closest("#botaoVoltarNaTela")) {
+            return;
+        }
+        const no = event.target && event.target.closest ? event.target.closest("[data-foco-grupo]") : null;
+        if (!no) {
+            // Toque no video em tela cheia: mostra ou esconde a barra do player.
+            if (state.player.open) {
+                if (state.player.controlsVisible) {
+                    state.player.controlsVisible = false;
+                    renderPlayer();
+                } else {
+                    showPlayerControls();
+                }
+            }
+            return;
+        }
+        const grupo = no.getAttribute("data-foco-grupo");
+        const indice = Number(no.getAttribute("data-foco-indice")) || 0;
+        const levar = FOCO_POR_PONTEIRO[grupo];
+        if (!levar) {
+            return;
+        }
+        event.preventDefault();
+        // Coracao do canal: favorita sem abrir.
+        if (grupo === "catalogItems" && event.target.closest(".coracao")) {
+            levar(indice);
+            toggleFavoriteForFocusedItem();
+            return;
+        }
+        if (levar(indice) === true) {
+            return;
+        }
+        teclaSintetica("Enter");
+    }
+
+    let ultimaRoda = 0;
+    function rodaDoMouse(event) {
+        const agora = Date.now();
+        if (agora - ultimaRoda < 140 || Math.abs(event.deltaY) < 4) {
+            return;
+        }
+        ultimaRoda = agora;
+        marcarPonteiro();
+        teclaSintetica(event.deltaY > 0 ? "ArrowDown" : "ArrowUp");
+    }
+
+    let inicioDoToque = null;
+    function comecoDoToque(event) {
+        marcarPonteiro();
+        const toque = event.touches && event.touches[0];
+        inicioDoToque = toque ? { x: toque.clientX, y: toque.clientY } : null;
+    }
+    function fimDoToque(event) {
+        const toque = event.changedTouches && event.changedTouches[0];
+        if (!inicioDoToque || !toque) {
+            return;
+        }
+        const dx = toque.clientX - inicioDoToque.x;
+        const dy = toque.clientY - inicioDoToque.y;
+        inicioDoToque = null;
+        // Deslizar: cada ~60px de tela vira uma seta (ate 8 por gesto).
+        const passos = Math.min(8, Math.floor(Math.max(Math.abs(dx), Math.abs(dy)) / 60));
+        if (passos < 1) {
+            return;
+        }
+        const tecla = Math.abs(dy) >= Math.abs(dx) ? (dy < 0 ? "ArrowDown" : "ArrowUp") : (dx < 0 ? "ArrowRight" : "ArrowLeft");
+        for (let i = 0; i < passos; i += 1) {
+            teclaSintetica(tecla);
+        }
+    }
+
+    function ligarMouseEToque() {
+        const botao = document.createElement("button");
+        botao.id = "botaoVoltarNaTela";
+        botao.type = "button";
+        botao.textContent = "\u2190 Voltar";
+        botao.addEventListener("click", function (event) {
+            event.preventDefault();
+            teclaSintetica("Escape");
+        });
+        document.body.appendChild(botao);
+        document.addEventListener("click", cliqueOuToque, true);
+        document.addEventListener("mousemove", marcarPonteiro, { passive: true });
+        document.addEventListener("wheel", rodaDoMouse, { passive: true });
+        document.addEventListener("touchstart", comecoDoToque, { passive: true });
+        document.addEventListener("touchend", fimDoToque, { passive: true });
+    }
+
     function bindEvents() {
+        ligarMouseEToque();
         videoDaSamsungNoCorpo();
         prenderVoltarDoMsx();
         document.addEventListener("keydown", onKeyDown, true);
@@ -6889,6 +7068,14 @@
     function setFocusedState(nodes, activeIndex, enabled, key) {
         if (!nodes || !nodes.length) {
             return;
+        }
+        if (key) {
+            // Etiqueta para o mouse e o toque (ver "Mouse e toque"): clicar num no
+            // leva o foco ao grupo e indice dele.
+            nodes.forEach(function (node, index) {
+                node.setAttribute("data-foco-grupo", key);
+                node.setAttribute("data-foco-indice", String(index));
+            });
         }
 
         if (!key) {

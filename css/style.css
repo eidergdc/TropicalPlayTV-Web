@@ -3747,3 +3747,24 @@ html.video-no-corpo[data-player-engine="html5"] .app-shell::after {
 .player-control-pill.pilula-oculta {
     display: none !important;
 }
+
+/* Mouse e toque (computador, celular): o que da para clicar tem cursor de mao, e o
+   botao Voltar aparece so depois de um movimento de mouse ou toque - na TV ele nao
+   existe. */
+html.com-ponteiro [data-foco-grupo] { cursor: pointer; }
+#botaoVoltarNaTela {
+    display: none;
+    position: fixed;
+    left: 24px;
+    top: 24px;
+    z-index: 2147483000;
+    padding: 14px 26px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 999px;
+    background: rgba(8, 14, 22, 0.82);
+    color: #f7f4e8;
+    font: 600 26px/1 system-ui, sans-serif;
+    cursor: pointer;
+}
+html.com-ponteiro #botaoVoltarNaTela { display: block; }
+#botaoVoltarNaTela:hover { border-color: #ff9051; }
