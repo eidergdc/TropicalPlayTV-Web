@@ -3684,18 +3684,20 @@ html.app-tizen .player-overlay[data-player-engine="html5"] .player-video {
     background: transparent !important;
 }
 
-/* Modos de teste da tela cheia na Samsung (painel de diagnostico): o video pequeno
-   no layout, ampliado por transform ate cobrir 1920x1080. */
-html.tela-x15 .player-video,
-html.tela-x2 .player-video,
-html.tela-x3 .player-video {
+/* Modos de teste da tela cheia na Samsung (painel de diagnostico). */
+html.tela-absolute .player-overlay {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+}
+html.tela-x2 .player-video {
     inset: auto !important;
     left: 0 !important;
     top: 0 !important;
     min-width: 0 !important;
     min-height: 0 !important;
     transform-origin: 0 0;
+    width: 960px !important;
+    height: 540px !important;
+    transform: scale(2);
 }
-html.tela-x15 .player-video { width: 1280px !important; height: 720px !important; transform: scale(1.5); }
-html.tela-x2 .player-video { width: 960px !important; height: 540px !important; transform: scale(2); }
-html.tela-x3 .player-video { width: 640px !important; height: 360px !important; transform: scale(3); }

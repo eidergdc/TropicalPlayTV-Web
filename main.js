@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.9";
+    const APP_VERSION = "1.1.10";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1050,12 +1050,16 @@
         // Rodada 1.1.8: normal, Fullscreen API (TypeError), 2px menor e contain - todos
         // pretos. A previa pequena aparece. Rodada 1.1.9: o video fica pequeno no layout e
         // e ampliado por transform ate a tela inteira.
+        //
+        // Rodada 1.1.10: as rodadas anteriores trocavam o modo COM o video tocando, e a
+        // Samsung fixa onde desenha o video quando ele comeca (visto na 1.1.4) - o teste
+        // nao valia. Agora cada troca reinicia o video ja no arranjo novo.
         //   1 = como esta
-        //   2 = 1280x720 ampliado 1,5x
-        //   3 = 960x540 ampliado 2x
-        //   4 = 640x360 ampliado 3x
+        //   2 = player como parte da pagina (absolute), nao camada fixa por cima
+        //   3 = video 960x540 ampliado 2x
+        //   4 = player absolute + video 960x540 ampliado 2x
         let modoTelaCheia = 1;
-        const NOMES_DOS_MODOS = { 1: "normal", 2: "1280x720 x1.5", 3: "960x540 x2", 4: "640x360 x3" };
+        const NOMES_DOS_MODOS = { 1: "normal", 2: "player absolute", 3: "960x540 x2", 4: "absolute + 960x540 x2" };
         function sairDaTelaCheiaDoNavegador() {
             try {
                 const saida = document.exitFullscreen || document.webkitExitFullscreen;
@@ -1069,9 +1073,8 @@
         function aplicarModoTelaCheia(modo) {
             modoTelaCheia = modo;
             const raiz = document.documentElement;
-            raiz.classList.toggle("tela-x15", modo === 2);
-            raiz.classList.toggle("tela-x2", modo === 3);
-            raiz.classList.toggle("tela-x3", modo === 4);
+            raiz.classList.toggle("tela-absolute", modo === 2 || modo === 4);
+            raiz.classList.toggle("tela-x2", modo === 3 || modo === 4);
             sairDaTelaCheiaDoNavegador();
         }
         let ultimoErroDoModo = "";
@@ -1111,10 +1114,15 @@
                 playerAbertoDesde = Date.now();
                 return;
             }
-            const modo = (Math.floor((Date.now() - playerAbertoDesde) / 8000) % 4) + 1;
+            const modo = (Math.floor((Date.now() - playerAbertoDesde) / 12000) % 4) + 1;
             if (modo !== modoTelaCheia) {
                 ultimoErroDoModo = "";
                 aplicarModoTelaCheia(modo);
+                // Recomeca o video ja no arranjo novo: e no inicio que a TV decide onde
+                // desenhar.
+                if (state.player.url && state.player.engine === "html5") {
+                    attachPlayerSource(state.player.url);
+                }
             }
         }
 
@@ -1140,7 +1148,7 @@
                 "fundo html " + fundo(document.documentElement) + " body " + fundo(document.body) +
                     " player " + fundo(dom.playerOverlay),
                 "tela " + window.innerWidth + "x" + window.innerHeight + " dpr " + (window.devicePixelRatio || 1),
-                "MODO TELA CHEIA: " + modoTelaCheia + " (" + NOMES_DOS_MODOS[modoTelaCheia] + ")  - troca sozinho a cada 8 s" +
+                "MODO TELA CHEIA: " + modoTelaCheia + " (" + NOMES_DOS_MODOS[modoTelaCheia] + ")  - troca e reinicia a cada 12 s" +
                     (ultimoErroDoModo ? "  erro: " + ultimoErroDoModo : "") +
                     "  fullscreen ativo: " + simNao(document.fullscreenElement || document.webkitFullscreenElement),
             ].join("\n");
