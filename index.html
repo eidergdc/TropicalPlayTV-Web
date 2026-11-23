@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.1.5">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.1.6">
     <style>
     /* Escala do app (ver o script abaixo): o corpo tem sempre 1920x1080 e encolhe ou
        cresce por transform. vw/vh do style.css viram --vw/--vh, 1% desse 1920x1080. */
@@ -52,11 +52,21 @@
         window.addEventListener("resize", ajustarEscala);
     })();
     </script>
+    <script>
+    // Samsung (Tizen) dentro do MSX: a biblioteca do player nativo da TV (AVPlay). O
+    // caminho especial $WEBAPIS resolve tambem na pagina aberta pelo MSX - e o que o
+    // SmartMSX faz. Com ela o app usa o AVPlay, para o qual foi feito: tela cheia e a
+    // passagem da previa sem recarregar. Sem ela, o player do navegador da Samsung
+    // deixava a tela cheia preta. Fora da Samsung nao carrega nada.
+    if (/Tizen/i.test(navigator.userAgent || "")) {
+        document.write('<script src="$WEBAPIS/webapis/webapis.js"><\/script>');
+    }
+    </script>
     <script src="lib/firebase-app.js"></script>
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.1.5" defer></script>
+    <script src="./main.js?v=1.1.6" defer></script>
 </head>
 <body>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">
