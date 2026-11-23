@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.3.8";
+    const APP_VERSION = "1.3.9";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -2263,7 +2263,13 @@
 
             if (action.type === "down") {
                 event.preventDefault();
-                state.catalog.itemIndex = (state.catalog.itemIndex + 1) % items.length;
+                // No fim da lista o cursor volta para as categorias: com uma lista curta (um
+                // canal so), dar a volta para o mesmo item parecia app travado.
+                if (state.catalog.itemIndex >= items.length - 1) {
+                    state.catalog.zone = "categories";
+                } else {
+                    state.catalog.itemIndex += 1;
+                }
                 syncCatalogFocus();
                 return;
             }
@@ -2387,8 +2393,14 @@
             const nextIndex = state.catalog.itemIndex + columns;
             if (nextIndex < items.length) {
                 state.catalog.itemIndex = nextIndex;
-                syncCatalogFocus();
+            } else if (Math.floor(state.catalog.itemIndex / columns) < Math.floor((items.length - 1) / columns)) {
+                // Linha de baixo incompleta: vai para o ultimo item dela.
+                state.catalog.itemIndex = items.length - 1;
+            } else {
+                // Ultima linha: o cursor volta para as categorias, como na lista de canais.
+                state.catalog.zone = "categories";
             }
+            syncCatalogFocus();
             return;
         }
 
