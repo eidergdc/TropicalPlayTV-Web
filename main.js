@@ -6711,6 +6711,31 @@
         ensureNodeVisible(dom.categoryNodes && dom.categoryNodes[categoryVisibleIndex]);
         ensureNodeVisible(dom.itemNodes && dom.itemNodes[itemVisibleIndex]);
         renderCatalogDetail();
+        mostrarProgramacaoDoFoco();
+    }
+
+    // O painel da direita segue o canal SELECIONADO (o da previa). A programacao segue o
+    // canal em FOCO: a previa continua tocando e, passando o controle pela lista, ja se ve
+    // o que passa nos outros canais - como no SmartMSX.
+    function mostrarProgramacaoDoFoco() {
+        const alvo = dom.detailCard && dom.detailCard.querySelector(".detail-epg");
+        if (!alvo || state.catalog.zone !== "items") {
+            return;
+        }
+        const foco = currentFocusedCatalogItem();
+        if (!foco || isCatalogSearchAction(foco) || catalogContentType(foco, state.catalog.type) !== "live") {
+            return;
+        }
+        const chave = chaveDaProgramacao(foco);
+        if (alvo.getAttribute("data-epg-key") === chave) {
+            return;
+        }
+        const selecionado = currentSelectedItem();
+        const outroCanal = !selecionado || chaveDaProgramacao(selecionado) !== chave;
+        alvo.setAttribute("data-epg-key", chave);
+        alvo.setAttribute("data-epg-nome", outroCanal ? String(foco.name || "") : "");
+        alvo.innerHTML = htmlDaProgramacao(programacaoEmCache(foco), alvo.getAttribute("data-epg-nome"));
+        agendarProgramacao(foco);
     }
 
     function syncCatalogCategorySelectedState() {
@@ -7285,6 +7310,7 @@
         }
 
         if (catalogContentType(item, state.catalog.type) === "live" && item) {
+            agendarProgramacao(item);
             if (window.requestAnimationFrame) {
                 window.requestAnimationFrame(function () {
                     attachCatalogPreview(item);
@@ -7411,20 +7437,197 @@
                   escapeHtml(title) +
                   '">';
 
+        // Canal ao vivo: a programacao (EPG) no lugar do texto generico. Vem do cache se o
+        // canal ja foi visto; senao entra "carregando" e preencherProgramacao completa.
+        const corpo =
+            contentType === "live" && !item.plot && !item.blurb
+                ? '<div class="detail-epg" data-epg-key="' +
+                  escapeHtml(chaveDaProgramacao(item)) +
+                  '">' +
+                  htmlDaProgramacao(programacaoEmCache(item)) +
+                  "</div>"
+                : '<p class="detail-copy">' + escapeHtml(plot) + "</p>";
+
         return (
             previewMarkup +
             '<p class="card-title">' +
             escapeHtml(title) +
             "</p>" +
-            '<p class="detail-copy">' +
-            escapeHtml(plot) +
-            "</p>" +
+            corpo +
             '<div class="detail-tags">' +
             tags.map(function (tag) {
                 return '<span class="tag">' + escapeHtml(tag) + "</span>";
             }).join("") +
             "</div>"
         );
+    }
+
+    // --- Programacao (EPG) do canal em foco ------------------------------------
+    //
+    // Como no SmartMSX: passando o controle pelos canais, o painel ja mostra o que esta
+    // passando e o que vem depois. Vem do get_short_epg do proprio painel Xtream, com
+    // titulo e descricao em base64. Espera o foco parar (ESPERA_DA_PROGRAMACAO_MS) para
+    // nao disparar um pedido por canal ao rolar a lista, e guarda por 5 minutos.
+    const ESPERA_DA_PROGRAMACAO_MS = 350;
+    const VALIDADE_DA_PROGRAMACAO_MS = 5 * 60 * 1000;
+    const programacoes = {};
+    let relogioDaProgramacao = null;
+
+    function chaveDaProgramacao(item) {
+        const servidor = state.selectedServer || {};
+        return String(servidor.baseUrl || "") + "|" + String(servidor.username || "") + "|" + String((item && item.stream_id) || "");
+    }
+
+    function programacaoEmCache(item) {
+        const guardada = programacoes[chaveDaProgramacao(item)];
+        if (!guardada || Date.now() - guardada.em > VALIDADE_DA_PROGRAMACAO_MS) {
+            return null;
+        }
+        return guardada.lista;
+    }
+
+    function textoDoEpg(valor) {
+        const bruto = String(valor || "");
+        if (!bruto) {
+            return "";
+        }
+        try {
+            const binario = atob(bruto);
+            if (window.TextDecoder) {
+                const bytes = new Uint8Array(binario.length);
+                for (let i = 0; i < binario.length; i += 1) {
+                    bytes[i] = binario.charCodeAt(i);
+                }
+                return new TextDecoder("utf-8").decode(bytes).trim();
+            }
+            return decodeURIComponent(escape(binario)).trim();
+        } catch (error) {
+            // Alguns paineis mandam o texto puro, sem base64.
+            return bruto.trim();
+        }
+    }
+
+    function horaDoEpg(registro, campoTimestamp, campoTexto) {
+        const segundos = Number(registro[campoTimestamp]);
+        if (segundos > 0) {
+            return segundos * 1000;
+        }
+        const texto = String(registro[campoTexto] || "").replace(" ", "T");
+        const ms = Date.parse(texto);
+        return Number.isNaN(ms) ? 0 : ms;
+    }
+
+    async function buscarProgramacao(item) {
+        const servidor = state.selectedServer;
+        if (!servidor || servidor.isDemo || !item || !item.stream_id) {
+            return [];
+        }
+        const url =
+            servidor.baseUrl +
+            "/player_api.php?username=" +
+            encodeURIComponent(servidor.username) +
+            "&password=" +
+            encodeURIComponent(servidor.password) +
+            "&action=get_short_epg&limit=4&stream_id=" +
+            encodeURIComponent(item.stream_id);
+        const resposta = await fetchJson(url);
+        const registros = resposta && Array.isArray(resposta.epg_listings) ? resposta.epg_listings : [];
+        const agora = Date.now();
+        return registros
+            .map(function (registro) {
+                return {
+                    titulo: textoDoEpg(registro.title),
+                    descricao: textoDoEpg(registro.description),
+                    inicio: horaDoEpg(registro, "start_timestamp", "start"),
+                    fim: horaDoEpg(registro, "stop_timestamp", "end"),
+                };
+            })
+            .filter(function (programa) {
+                return programa.titulo && programa.fim > agora;
+            })
+            .sort(function (a, b) {
+                return a.inicio - b.inicio;
+            });
+    }
+
+    function horaCurta(ms) {
+        const data = new Date(ms);
+        return String(data.getHours()).padStart(2, "0") + ":" + String(data.getMinutes()).padStart(2, "0");
+    }
+
+    function htmlDaProgramacao(lista, nomeDoCanal) {
+        // Quando a programacao e de outro canal que nao o da previa, o nome dele vai em cima.
+        const cabeca = nomeDoCanal
+            ? '<p class="detail-epg-canal">' + escapeHtml(nomeDoCanal) + "</p>"
+            : "";
+        if (lista === null) {
+            return cabeca + '<p class="detail-copy detail-epg-vazio">Carregando a programacao...</p>';
+        }
+        if (!lista.length) {
+            return cabeca + '<p class="detail-copy detail-epg-vazio">Programacao nao informada para este canal.</p>';
+        }
+        const agora = Date.now();
+        const atual = lista[0];
+        const andamento =
+            atual.inicio && atual.fim > atual.inicio
+                ? Math.max(0, Math.min(100, ((agora - atual.inicio) / (atual.fim - atual.inicio)) * 100))
+                : 0;
+        const proximos = lista.slice(1, 3);
+        return (
+            cabeca +
+            '<div class="detail-epg-agora">' +
+            '<span class="detail-epg-rotulo">Agora</span>' +
+            '<span class="detail-epg-hora">' +
+            escapeHtml(horaCurta(atual.inicio) + " - " + horaCurta(atual.fim)) +
+            "</span>" +
+            '<p class="detail-epg-titulo">' +
+            escapeHtml(atual.titulo) +
+            "</p>" +
+            '<div class="detail-epg-barra"><span style="width:' +
+            andamento.toFixed(1) +
+            '%"></span></div>' +
+            (atual.descricao ? '<p class="detail-epg-descricao">' + escapeHtml(atual.descricao) + "</p>" : "") +
+            "</div>" +
+            proximos
+                .map(function (programa) {
+                    return (
+                        '<div class="detail-epg-seguinte">' +
+                        '<span class="detail-epg-hora">' +
+                        escapeHtml(horaCurta(programa.inicio)) +
+                        "</span>" +
+                        '<span class="detail-epg-titulo-seguinte">' +
+                        escapeHtml(programa.titulo) +
+                        "</span></div>"
+                    );
+                })
+                .join("")
+        );
+    }
+
+    function agendarProgramacao(item) {
+        if (relogioDaProgramacao) {
+            clearTimeout(relogioDaProgramacao);
+            relogioDaProgramacao = null;
+        }
+        if (programacaoEmCache(item) !== null) {
+            return;
+        }
+        const chave = chaveDaProgramacao(item);
+        relogioDaProgramacao = setTimeout(async function () {
+            relogioDaProgramacao = null;
+            let lista = [];
+            try {
+                lista = await buscarProgramacao(item);
+            } catch (error) {
+                console.log("Programacao indisponivel:", error);
+            }
+            programacoes[chave] = { em: Date.now(), lista: lista };
+            // So escreve se o painel ainda for deste canal: o cliente pode ter seguido.
+            const alvo = dom.detailCard && dom.detailCard.querySelector(".detail-epg");
+            if (alvo && alvo.getAttribute("data-epg-key") === chave) {
+                alvo.innerHTML = htmlDaProgramacao(lista, alvo.getAttribute("data-epg-nome"));
+            }
+        }, ESPERA_DA_PROGRAMACAO_MS);
     }
 
     function renderSeriesPosterDetail(item, title, image, plot) {

@@ -3612,3 +3612,17 @@ strong {
         transform: rotate(360deg);
     }
 }
+
+/* Programacao (EPG) do canal em foco, no painel da direita. */
+.detail-epg { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.4rem; }
+.detail-epg-agora { display: flex; flex-direction: column; gap: 0.3rem; }
+.detail-epg-rotulo { color: #ff9051; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.detail-epg-hora { color: #a6b6c7; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.detail-epg-titulo { margin: 0; color: #f7f4e8; font-size: 1.25rem; font-weight: 700; line-height: 1.25; }
+.detail-epg-barra { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+.detail-epg-barra span { display: block; height: 100%; background: #ff9051; }
+.detail-epg-descricao { margin: 0; color: #a6b6c7; font-size: 0.9rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.detail-epg-seguinte { display: flex; gap: 0.8rem; align-items: baseline; padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.detail-epg-titulo-seguinte { color: #e3e8ee; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detail-epg-vazio { color: #a6b6c7; }
+.detail-epg-canal { margin: 0; color: #f7f4e8; font-size: 1rem; font-weight: 600; opacity: 0.85; }
