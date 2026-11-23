@@ -3730,24 +3730,36 @@ html.previa-gigante .player-video {
     display: none !important;
 }
 
-/* Samsung (1.3.3): o <video> do player e filho direto do body (videoDaSamsungNoCorpo),
-   como na pagina de teste que mostrou tela cheia. Fora do player ele some; tocando, o
-   catalogo e as camadas decorativas somem e so os controles ficam por cima. */
+/* Samsung (1.3.3/1.3.4): o <video> do player e filho direto do body
+   (videoDaSamsungNoCorpo), como na pagina de teste que mostrou tela cheia. Ele faz a
+   previa, sobre a moldura dela (--pv-*, z-index acima do catalogo), e a tela cheia, so
+   mudando de tamanho - por baixo dos controles do player (z-index 9999). */
 html.video-no-corpo #playerVideo {
     position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 1920px !important;
-    height: 1080px !important;
+    right: auto !important;
+    bottom: auto !important;
     min-width: 0 !important;
     min-height: 0 !important;
-    z-index: 0 !important;
+    z-index: 5 !important;
     background: transparent !important;
     object-fit: contain !important;
     display: none;
 }
+html.video-no-corpo.previa-no-corpo #playerVideo {
+    display: block;
+    left: var(--pv-x, 0px) !important;
+    top: var(--pv-y, 0px) !important;
+    width: var(--pv-w, 640px) !important;
+    height: var(--pv-h, 360px) !important;
+    object-fit: cover !important;
+}
 html.video-no-corpo[data-player-engine="html5"] #playerVideo {
     display: block;
+    left: 0 !important;
+    top: 0 !important;
+    width: 1920px !important;
+    height: 1080px !important;
+    object-fit: contain !important;
 }
 html.video-no-corpo[data-player-engine="html5"] .screen-stack,
 html.video-no-corpo[data-player-engine="html5"] .topbar,

@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.3.3";
+    const APP_VERSION = "1.3.4";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -991,15 +991,27 @@
         },
     };
 
+    // Na Samsung o mesmo <video> tambem faz a previa (previaNoCorpo): ali os eventos nao
+    // sao do player e nao devem mexer no estado dele.
+    const EVENTOS_DO_PLAYER_LIGADOS = {};
+    Object.keys(EVENTOS_DO_PLAYER).forEach(function (nome) {
+        EVENTOS_DO_PLAYER_LIGADOS[nome] = function () {
+            if (!state.player.open) {
+                return;
+            }
+            EVENTOS_DO_PLAYER[nome]();
+        };
+    });
+
     function ligarEventosDoPlayer(elemento) {
-        Object.keys(EVENTOS_DO_PLAYER).forEach(function (nome) {
-            elemento.addEventListener(nome, EVENTOS_DO_PLAYER[nome]);
+        Object.keys(EVENTOS_DO_PLAYER_LIGADOS).forEach(function (nome) {
+            elemento.addEventListener(nome, EVENTOS_DO_PLAYER_LIGADOS[nome]);
         });
     }
 
     function desligarEventosDoPlayer(elemento) {
-        Object.keys(EVENTOS_DO_PLAYER).forEach(function (nome) {
-            elemento.removeEventListener(nome, EVENTOS_DO_PLAYER[nome]);
+        Object.keys(EVENTOS_DO_PLAYER_LIGADOS).forEach(function (nome) {
+            elemento.removeEventListener(nome, EVENTOS_DO_PLAYER_LIGADOS[nome]);
         });
     }
 
@@ -4109,7 +4121,7 @@
         if (!shouldKeepLivePreview) {
             stopNativePlayer();
         }
-        const voltouParaPrevia = desfazerPreviaGigante() || devolverPlayerParaPrevia();
+        const voltouParaPrevia = devolverPreviaNoCorpo() || desfazerPreviaGigante() || devolverPlayerParaPrevia();
         if (!voltouParaPrevia) {
             destroyManagedHls("player");
             resetVideoElement(dom.playerVideo);
@@ -4662,7 +4674,80 @@
         attachHtmlCatalogPreview(previewVideo, url);
     }
 
+    // --- Samsung: um <video> so para previa e tela cheia ------------------------------
+    //
+    // Na Samsung o video so aparece em tela cheia no <video> do corpo (1.3.3). Com dois
+    // videos, maximizar parava a previa e recomecava o canal no outro, e ao voltar a
+    // previa recomecava preta. Aqui o proprio <video> do corpo faz a previa, posicionado
+    // sobre a moldura dela; maximizar so o aumenta e Voltar o diminui, sem parar o canal.
+    let previaNoCorpo = null;
+    let previaPromovidaNoCorpo = null;
+
+    function usaPreviaNoCorpo() {
+        return document.documentElement.classList.contains("video-no-corpo") && Boolean(dom.playerVideo);
+    }
+
+    function marcarLugarDaPrevia(moldura) {
+        const caixa = moldura.getBoundingClientRect();
+        const raiz = document.documentElement;
+        raiz.style.setProperty("--pv-x", caixa.left + "px");
+        raiz.style.setProperty("--pv-y", caixa.top + "px");
+        raiz.style.setProperty("--pv-w", caixa.width + "px");
+        raiz.style.setProperty("--pv-h", caixa.height + "px");
+    }
+
+    function tocarPreviaNoCorpo(previewVideo, url) {
+        const moldura = previewVideo.closest(".detail-preview-shell") || previewVideo;
+        marcarLugarDaPrevia(moldura);
+        document.documentElement.classList.add("previa-no-corpo");
+        attachManagedVideo(dom.playerVideo, url, { kind: "preview", muted: false, suppressErrors: true });
+        previaNoCorpo = { url: url };
+    }
+
+    function pararPreviaNoCorpo() {
+        document.documentElement.classList.remove("previa-no-corpo");
+        if (previaNoCorpo && !state.player.open) {
+            resetVideoElement(dom.playerVideo);
+        }
+        previaNoCorpo = null;
+    }
+
+    function promoverPreviaNoCorpo(playerState) {
+        if (!usaPreviaNoCorpo() || !previaNoCorpo || previaNoCorpo.url !== playerState.url || playerState.mediaKind === "image") {
+            return false;
+        }
+        document.documentElement.classList.remove("previa-no-corpo");
+        previaNoCorpo = null;
+        previaPromovidaNoCorpo = { url: playerState.url, chave: state.catalog.detailKey };
+        state.player.engine = "html5";
+        state.player.paused = dom.playerVideo.paused;
+        renderPlayer();
+        focusPlayerOverlay();
+        startPlayerStallMonitor();
+        return true;
+    }
+
+    function devolverPreviaNoCorpo() {
+        const promovida = previaPromovidaNoCorpo;
+        previaPromovidaNoCorpo = null;
+        if (
+            !promovida ||
+            state.screen !== "catalog" ||
+            state.player.url !== promovida.url ||
+            state.catalog.detailKey !== promovida.chave
+        ) {
+            return false;
+        }
+        document.documentElement.classList.add("previa-no-corpo");
+        previaNoCorpo = { url: promovida.url };
+        return true;
+    }
+
     function attachHtmlCatalogPreview(previewVideo, url) {
+        if (usaPreviaNoCorpo()) {
+            tocarPreviaNoCorpo(previewVideo, url);
+            return;
+        }
         attachManagedVideo(previewVideo, url, {
             kind: "preview",
             muted: false,
@@ -4805,6 +4890,9 @@
     }
 
     function promoverPreviaParaPlayer(playerState) {
+        if (promoverPreviaNoCorpo(playerState)) {
+            return true;
+        }
         if (previaGiganteNaSamsung(playerState)) {
             return true;
         }
@@ -5050,6 +5138,9 @@
 
     function stopCatalogPreview() {
         previaHtml = null;
+        if (previaNoCorpo) {
+            pararPreviaNoCorpo();
+        }
         stopNativeCatalogPreview();
         destroyManagedHls("preview");
         const previewVideo = dom.detailCard ? dom.detailCard.querySelector(".detail-preview-video") : null;
