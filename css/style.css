@@ -3770,3 +3770,22 @@ html.com-ponteiro #botaoVoltarNaTela { display: block; }
 #botaoVoltarNaTela:hover { border-color: #ff9051; }
 html.com-ponteiro .detail-preview-shell,
 html.com-ponteiro.previa-no-corpo #playerVideo { cursor: pointer; }
+
+/* Cursor das listas (1.4.0). Antes o item com o cursor (borda amarela fina) e o item
+   escolhido (borda laranja) pareciam iguais: ao apertar para a esquerda, o cursor caia na
+   categoria ja escolhida e nada mudava na tela, parecia que a tecla nao tinha funcionado.
+   Agora o cursor e um contorno branco grosso com fundo claro, bem diferente da marca
+   laranja do item escolhido, e muda de coluna de forma visivel. O contorno e "inset"
+   porque as colunas cortam o que passa da borda do cartao. */
+html .catalog-screen[data-variant] .category-chip.is-focused,
+html .catalog-screen[data-variant] .media-card.is-focused {
+    border-color: #ffffff;
+    background:
+        linear-gradient(180deg, rgba(255, 170, 90, 0.34), rgba(255, 140, 60, 0.16)),
+        rgba(40, 30, 24, 0.96);
+    box-shadow: inset 0 0 0 3px #ffffff, inset 0 0 0 6px rgba(255, 144, 81, 0.85);
+}
+html .catalog-screen[data-variant] .category-chip.is-focused .category-name,
+html .catalog-screen[data-variant] .media-card.is-focused .media-title {
+    color: #ffffff;
+}
