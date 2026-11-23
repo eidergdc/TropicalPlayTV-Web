@@ -12,12 +12,14 @@
 </style>
 </head>
 <body>
-<!-- Teste isolado da tela cheia na Samsung dentro do MSX (app web 1.3.0). O SmartMSX abre
+<!-- 1.3.1: o video publico https apareceu em tela cheia (1.3.0). Agora um video publico
+     em http, como os canais dos paineis, dentro desta pagina https.
+     Teste isolado da tela cheia na Samsung dentro do MSX (app web 1.3.0). O SmartMSX abre
      o app por https nessa TV e mostra video em tela cheia; o nosso, por http, so mostra
      video pequeno. Esta pagina, por https, toca um video publico de teste (HLS, https) ja
      em 1920x1080, direto no <video> - sem painel Xtream, sem mpegts.js. -->
 <video id="v" autoplay playsinline muted
-       src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"></video>
+       src="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"></video>
 <div id="info">carregando...</div>
 <script>
 (function () {
@@ -25,11 +27,11 @@
   var info = document.getElementById("info");
   function atualizar() {
     info.textContent =
-      "TESTE TELA CHEIA  " + location.protocol + "\n" +
+      "TESTE TELA CHEIA 1.3.1  pagina " + location.protocol + "  video http (publico)\n" +
       "video: rs=" + v.readyState + " " + v.videoWidth + "x" + v.videoHeight +
       " t=" + (v.currentTime || 0).toFixed(1) + (v.paused ? " pausado" : " tocando") +
       (v.error ? "  erro " + v.error.code : "") + "\n" +
-      "Se aparecer a animacao do coelho em tela cheia, o https resolve.\n" +
+      "Se aparecer o video de teste (bipbop) em tela cheia, video http toca dentro do https.\n" +
       "Aperte Voltar para sair.";
   }
   setInterval(atualizar, 1000);
