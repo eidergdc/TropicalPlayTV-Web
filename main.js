@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.2.4";
+    const APP_VERSION = "1.2.5";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -12294,6 +12294,59 @@
         return typeMeta ? typeMeta.displayTitle || typeMeta.title : "";
     }
 
+    // Pagina https pedindo ao painel Xtream em http - o caso da Samsung, onde o app abre
+    // por https para ter o AVPlay. Ali o fetch e barrado como conteudo misto e nenhum
+    // servidor conectava (teste da 1.2.4); o XMLHttpRequest passa, e e o que o SmartMSX
+    // usa na mesma TV. Devolve um objeto com a cara da Response que o resto do app le.
+    function pedidoMisto(url) {
+        return window.location.protocol === "https:" && /^http:/i.test(String(url || ""));
+    }
+
+    function pedirPorXhr(url, acceptHeader, controller) {
+        return new Promise(function (resolver, rejeitar) {
+            const pedido = new XMLHttpRequest();
+            pedido.open("GET", url, true);
+            try {
+                pedido.setRequestHeader("Accept", acceptHeader);
+            } catch (error) {
+                console.log("Accept no XHR ignorado:", error);
+            }
+            pedido.onload = function () {
+                const corpo = pedido.responseText || "";
+                resolver({
+                    ok: pedido.status >= 200 && pedido.status < 300,
+                    status: pedido.status,
+                    text: function () {
+                        return Promise.resolve(corpo);
+                    },
+                    json: function () {
+                        return new Promise(function (ok, falha) {
+                            try {
+                                ok(JSON.parse(corpo));
+                            } catch (error) {
+                                falha(error);
+                            }
+                        });
+                    },
+                });
+            };
+            pedido.onerror = function () {
+                rejeitar(new TypeError("Failed to fetch"));
+            };
+            pedido.onabort = function () {
+                const erro = new Error("abortado");
+                erro.name = "AbortError";
+                rejeitar(erro);
+            };
+            if (controller && controller.signal) {
+                controller.signal.addEventListener("abort", function () {
+                    pedido.abort();
+                });
+            }
+            pedido.send();
+        });
+    }
+
     async function fetchWithTimeout(url, acceptHeader) {
         if (!isNetworkConnected()) {
             showNetworkUnavailable("A TV esta sem conexao com a internet. Verifique a rede e tente novamente.");
@@ -12310,6 +12363,9 @@
         }
 
         try {
+            if (pedidoMisto(url)) {
+                return await pedirPorXhr(url, acceptHeader, controller);
+            }
             return await fetch(url, {
                 method: "GET",
                 headers: {
