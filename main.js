@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.6";
+    const APP_VERSION = "1.1.7";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1002,8 +1002,81 @@
         });
     }
 
+    // --- Diagnostico na Samsung (temporario) ----------------------------------------
+    //
+    // A tela cheia fica preta (com som) na Samsung dentro do MSX, pelo player do
+    // navegador e depois de carregar o AVPlay. Sem acesso a TV, este painel mostra o que
+    // a pagina ve: se o MSX a abriu dentro de um quadro, se o AVPlay carregou, qual player
+    // esta tocando, o estado de cada video e os fundos. So aparece na Samsung (Tizen).
+    function iniciarDiagnosticoTizen() {
+        if (!/Tizen/i.test(navigator.userAgent || "") || !document.body) {
+            return;
+        }
+        const painel = document.createElement("div");
+        painel.id = "diagnosticoTizen";
+        painel.setAttribute(
+            "style",
+            "position:fixed;left:12px;bottom:12px;z-index:2147483647;max-width:900px;padding:10px 14px;" +
+                "background:rgba(0,0,0,0.78);color:#9ff59f;font:15px/1.35 monospace;white-space:pre-wrap;" +
+                "border:1px solid #9ff59f;border-radius:8px;pointer-events:none"
+        );
+        document.body.appendChild(painel);
+
+        function simNao(valor) {
+            return valor ? "sim" : "nao";
+        }
+        function emQuadro() {
+            try {
+                return simNao(window.self !== window.top);
+            } catch (error) {
+                return "sim (bloqueado)";
+            }
+        }
+        function descreverVideo(video) {
+            if (!video) {
+                return "-";
+            }
+            return (
+                "rs=" + video.readyState +
+                " " + video.videoWidth + "x" + video.videoHeight +
+                " t=" + (video.currentTime || 0).toFixed(1) +
+                (video.paused ? " pausado" : " tocando") +
+                " src=" + String(video.currentSrc || "").slice(0, 12)
+            );
+        }
+        function fundo(elemento) {
+            return elemento ? getComputedStyle(elemento).backgroundColor : "-";
+        }
+        function atualizar() {
+            const avplay = nativeAvplay();
+            let estadoAvplay = "-";
+            if (avplay) {
+                try {
+                    estadoAvplay = avplay.getState();
+                } catch (error) {
+                    estadoAvplay = "erro " + (error && error.name);
+                }
+            }
+            const previa = dom.detailCard ? dom.detailCard.querySelector(".detail-preview-video") : null;
+            painel.textContent = [
+                "DIAGNOSTICO " + APP_VERSION + "  quadro(iframe): " + emQuadro() + "  " + location.protocol,
+                "tizen: " + simNao(window.tizen) + "  webapis: " + simNao(window.webapis) + "  avplay: " + simNao(avplay) + " (" + estadoAvplay + ")",
+                "player aberto: " + simNao(state.player.open) + "  motor: " + (state.player.engine || "-") +
+                    "  previa nativa: " + simNao(state.nativePreview && state.nativePreview.active),
+                "video player: " + descreverVideo(dom.playerVideo),
+                "video previa: " + descreverVideo(previa),
+                "fundo html " + fundo(document.documentElement) + " body " + fundo(document.body) +
+                    " player " + fundo(dom.playerOverlay),
+                "tela " + window.innerWidth + "x" + window.innerHeight + " dpr " + (window.devicePixelRatio || 1),
+            ].join("\n");
+        }
+        atualizar();
+        setInterval(atualizar, 1000);
+    }
+
     function bindEvents() {
         prenderVoltarDoMsx();
+        iniciarDiagnosticoTizen();
         document.addEventListener("keydown", onKeyDown, true);
         document.addEventListener("keyup", onKeyUp, true);
         window.addEventListener("resize", scheduleNativePlayerLayoutSync);
