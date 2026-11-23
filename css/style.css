@@ -3626,3 +3626,20 @@ strong {
 .detail-epg-titulo-seguinte { color: #e3e8ee; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detail-epg-vazio { color: #a6b6c7; }
 .detail-epg-canal { margin: 0; color: #f7f4e8; font-size: 1rem; font-weight: 600; opacity: 0.85; }
+
+/* Previa ao vivo no MSX (Android, Fire TV): o video saia preto, com som. O navegador
+   interno desenha o video numa camada propria, que nao aceita ser recortada por canto
+   arredondado (border-radius + overflow: hidden, aqui e no painel em volta) nem ficar
+   semitransparente (o fade de opacity) - e entao mostra preto. Na tela cheia, sem nada
+   disso, ja tocava. So no app web (html.app-escalado); a Samsung empacotada fica igual. */
+html.app-escalado .detail-card,
+html.app-escalado .detail-preview-shell {
+    overflow: visible;
+}
+html.app-escalado .detail-preview-shell {
+    border-radius: 0;
+}
+html.app-escalado .detail-preview-video {
+    opacity: 1;
+    transition: none;
+}
