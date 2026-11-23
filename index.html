@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.1.3">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.1.4">
     <style>
     /* Escala do app (ver o script abaixo): o corpo tem sempre 1920x1080 e encolhe ou
        cresce por transform. vw/vh do style.css viram --vw/--vh, 1% desse 1920x1080. */
     html.app-escalado { overflow: hidden; background: #050b12; }
-    html.app-escalado body {
+    html.app-transformado body {
         position: absolute; left: 0; top: 0;
         width: 1920px !important; height: 1080px !important; overflow: hidden;
         transform-origin: 0 0;
@@ -35,7 +35,12 @@
             var altura = window.innerHeight || raiz.clientHeight;
             var escala = Math.min(largura / LARGURA, altura / ALTURA);
             if (!(escala > 0)) return;
+            // app-escalado: e o app web (regras do style.css valem so aqui). O transform
+            // so entra quando ha o que escalar: na Samsung a tela ja e 1920x1080, e o
+            // video em tela cheia de la nao aceita ancestral transformado.
             raiz.classList.add("app-escalado");
+            raiz.classList.toggle("app-transformado", Math.abs(escala - 1) >= 0.01);
+            if (/Tizen/i.test(navigator.userAgent || "")) raiz.classList.add("app-tizen");
             raiz.style.setProperty("--app-escala", String(escala));
             raiz.style.setProperty("--app-dx", ((largura - LARGURA * escala) / 2) + "px");
             raiz.style.setProperty("--app-dy", ((altura - ALTURA * escala) / 2) + "px");
@@ -51,7 +56,7 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.1.3" defer></script>
+    <script src="./main.js?v=1.1.4" defer></script>
 </head>
 <body>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">

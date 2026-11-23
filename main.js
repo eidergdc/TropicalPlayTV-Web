@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.3";
+    const APP_VERSION = "1.1.4";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",

@@ -3669,3 +3669,17 @@ html.app-escalado .media-card .media-copy-shell { padding-right: 64px; }
 .media-card.coracao-focado .coracao {
     background: rgba(255, 255, 255, 0.16); border-color: #ff9051; transform: scale(1.12);
 }
+
+/* Samsung (Tizen) dentro do MSX: o video em tela cheia saia preto, com som - canais,
+   filmes e series. Em tela cheia o navegador da Samsung desenha o video numa camada
+   ATRAS da pagina (como faz o AVPlay), e os fundos pretos do player o cobriam. O app da
+   Samsung ja deixava esses fundos transparentes para o AVPlay; aqui o mesmo para o
+   player HTML5 do app web. A previa, pequena, nao usa essa camada e ja aparecia. */
+html.app-tizen[data-player-engine="html5"],
+html.app-tizen[data-player-engine="html5"] body,
+html.app-tizen .app-shell[data-player-engine="html5"],
+html.app-tizen .player-overlay[data-player-engine="html5"],
+html.app-tizen .player-overlay[data-player-engine="html5"] .player-stage,
+html.app-tizen .player-overlay[data-player-engine="html5"] .player-video {
+    background: transparent !important;
+}
