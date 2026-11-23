@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.2.0";
+    const APP_VERSION = "1.2.1";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1128,7 +1128,6 @@
         }
 
         function atualizar() {
-            rodizioDosModos();
             const avplay = nativeAvplay();
             let estadoAvplay = "-";
             if (avplay) {
@@ -1149,9 +1148,11 @@
                 "fundo html " + fundo(document.documentElement) + " body " + fundo(document.body) +
                     " player " + fundo(dom.playerOverlay),
                 "tela " + window.innerWidth + "x" + window.innerHeight + " dpr " + (window.devicePixelRatio || 1),
-                "MODO TELA CHEIA: " + modoTelaCheia + " (" + NOMES_DOS_MODOS[modoTelaCheia] + ")  - troca e reinicia a cada 12 s" +
-                    (ultimoErroDoModo ? "  erro: " + ultimoErroDoModo : "") +
-                    "  fullscreen ativo: " + simNao(document.fullscreenElement || document.webkitFullscreenElement),
+                "player e area sem recorte (overflow): " +
+                    (dom.playerOverlay ? getComputedStyle(dom.playerOverlay).overflow : "-") + " / " +
+                    (dom.playerOverlay && dom.playerOverlay.querySelector(".player-stage")
+                        ? getComputedStyle(dom.playerOverlay.querySelector(".player-stage")).overflow
+                        : "-"),
             ].join("\n");
         }
         atualizar();
