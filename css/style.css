@@ -3845,7 +3845,17 @@ html .catalog-screen[data-variant] .media-card.is-focused .media-title {
     width: 250px; height: 250px; display: block; margin: 0 auto;
     filter: drop-shadow(0 18px 40px rgba(255, 120, 20, 0.45));
     opacity: 0;
-    animation: aberturaLogo 1200ms cubic-bezier(0.2, 0.8, 0.2, 1) 250ms forwards, aberturaFlutua 4s ease-in-out 1600ms infinite;
+    animation: aberturaLogo 1200ms cubic-bezier(0.2, 0.8, 0.2, 1) 250ms forwards;
+}
+/* 1.4.3: a flutuacao travava na TV. Ela ia no proprio logo, que tem sombra (filter): a
+   TV redesenhava logo e sombra a cada quadro e arredondava o movimento para pixels
+   inteiros. Agora flutua uma caixa em volta, numa camada propria da placa de video
+   (translate3d + will-change): o logo e desenhado uma vez e so a camada se move. */
+.abertura-boia {
+    width: 250px; margin: 0 auto;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    animation: aberturaFlutua 4s ease-in-out 1600ms infinite;
 }
 .abertura-nome {
     margin-top: 26px; font-size: 68px; font-weight: 800; line-height: 1;
@@ -3887,7 +3897,7 @@ html .catalog-screen[data-variant] .media-card.is-focused .media-title {
     0% { opacity: 0; transform: scale(0.55) rotate(-12deg); filter: blur(14px) drop-shadow(0 18px 40px rgba(255, 120, 20, 0)); }
     100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0) drop-shadow(0 18px 40px rgba(255, 120, 20, 0.45)); }
 }
-@keyframes aberturaFlutua { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes aberturaFlutua { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -12px, 0); } }
 @keyframes aberturaNome {
     from { opacity: 0; letter-spacing: 0.5em; transform: translateY(16px); }
     to { opacity: 1; letter-spacing: 0.06em; transform: translateY(0); }

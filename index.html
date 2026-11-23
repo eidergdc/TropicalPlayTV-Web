@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.4.2">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.4.3">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -14,7 +14,7 @@
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.4.2">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.4.3">');
     })();
     </script>
     <style>
@@ -110,10 +110,10 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.4.2" defer></script>
+    <script src="./main.js?v=1.4.3" defer></script>
 </head>
 <body>
-    <!-- Abertura do app (1.4.2): cobre o carregamento ate a tela inicial. Fica fora do
+    <!-- Abertura do app (1.4.3): cobre o carregamento ate a tela inicial. Fica fora do
          .app-shell e aparece antes do main.js rodar. Ao fundo, uma parede de capas
          (as ultimas vistas nesta TV, guardadas pelo main.js) desliza inclinada; no
          centro o logo entra, o nome surge, a linha dourada se desenha e a barra mostra
@@ -124,7 +124,7 @@
         <div class="abertura-sombra"></div>
         <div class="abertura-brilho"></div>
         <div class="abertura-centro">
-            <img class="abertura-logo" src="assets/icon.png" alt="">
+            <div class="abertura-boia"><img class="abertura-logo" src="assets/icon.png" alt=""></div>
             <div class="abertura-nome">Tropical Play</div>
             <div class="abertura-linha"></div>
             <div class="abertura-barra"><div class="abertura-barra-cheia" id="aberturaBarra"></div></div>
