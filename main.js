@@ -1,5 +1,7 @@
 (function () {
-    const APP_VERSION = "1.0.8";
+    // Versao do app web (o MSX abre este app em tv.tropicalplaytv.com). Separada da do
+    // app da Samsung, de onde ele veio.
+    const APP_VERSION = "web 1.0.1";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -6210,7 +6212,12 @@
         const label = "Versao " + APP_VERSION;
 
         if (dom.loginAppVersion) {
-            dom.loginAppVersion.textContent = label;
+            // Na entrada vai tambem a tela que o aparelho entregou e a escala aplicada:
+            // e o que diz, olhando a TV, se a pagina carregada ja e a que se ajusta.
+            const tela = window.__telaDoApp;
+            dom.loginAppVersion.textContent = tela
+                ? label + "  •  tela " + tela.largura + "x" + tela.altura + "  •  escala " + tela.escala.toFixed(2)
+                : label;
         }
 
         if (dom.homeAppVersion) {

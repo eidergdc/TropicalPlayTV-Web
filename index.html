@@ -21,6 +21,7 @@
             var escala = Math.min(largura / LARGURA, altura / ALTURA);
             if (!(escala > 0)) return;
             raiz.style.zoom = Math.abs(escala - 1) < 0.01 ? "" : String(escala);
+            window.__telaDoApp = { largura: largura, altura: altura, escala: escala };
         }
         ajustarEscala();
         window.addEventListener("resize", ajustarEscala);
