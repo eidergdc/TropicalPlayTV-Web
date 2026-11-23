@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.2.2";
+    const APP_VERSION = "1.2.3";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1148,7 +1148,7 @@
                 "fundo html " + fundo(document.documentElement) + " body " + fundo(document.body) +
                     " player " + fundo(dom.playerOverlay),
                 "tela " + window.innerWidth + "x" + window.innerHeight + " dpr " + (window.devicePixelRatio || 1),
-                "previa gigante: " + simNao(document.documentElement.classList.contains("previa-gigante")) +
+                "tela cheia por copia: " + simNao(document.documentElement.classList.contains("previa-gigante")) +
                     "  player e area sem recorte (overflow): " +
                     (dom.playerOverlay ? getComputedStyle(dom.playerOverlay).overflow : "-") + " / " +
                     (dom.playerOverlay && dom.playerOverlay.querySelector(".player-stage")
@@ -4681,11 +4681,51 @@
         return !/Tizen/i.test(navigator.userAgent || "");
     }
 
-    // Teste na Samsung (1.2.2): em tela cheia, em vez do <video> do player, a PROPRIA
-    // previa cresce para a tela inteira e recomeca nesse tamanho. O video da previa e o
-    // unico que a Samsung mostrou ate aqui (1.1.4 a 1.2.1 descartaram fundo, tamanho,
-    // camada fixa e recorte); se aparecer, o problema e o <video> estar na camada do player.
+    // Tela cheia na Samsung dentro do MSX (1.2.3). Os testes 1.1.4 a 1.2.2 mostraram que
+    // ali todo <video> que comeca grande fica preto (com som), ate a propria previa
+    // recomecada em 1920x1080; so o video pequeno aparece. Entao a previa continua
+    // pequena, tocando, e um <canvas> em tela cheia copia cada quadro dela ampliado. A TV
+    // so ve um video pequeno; o cliente ve tela cheia - e sem recarregar o canal.
     let previaGigante = null;
+    let telaDeCopia = null;
+    let lacoDaCopia = 0;
+
+    function copiarQuadros(video) {
+        if (!telaDeCopia) {
+            telaDeCopia = document.createElement("canvas");
+            telaDeCopia.id = "telaCheiaPorCopia";
+            // Resolucao interna de 720p, esticada pelo CSS: metade do trabalho de 1080p.
+            telaDeCopia.width = 1280;
+            telaDeCopia.height = 720;
+            document.body.appendChild(telaDeCopia);
+        }
+        const contexto = telaDeCopia.getContext("2d");
+        telaDeCopia.style.display = "block";
+        function quadro() {
+            if (!previaGigante) {
+                return;
+            }
+            if (video.readyState >= 2) {
+                try {
+                    contexto.drawImage(video, 0, 0, telaDeCopia.width, telaDeCopia.height);
+                } catch (error) {
+                    console.log("Copia do quadro falhou:", error);
+                }
+            }
+            lacoDaCopia = window.requestAnimationFrame(quadro);
+        }
+        quadro();
+    }
+
+    function pararCopia() {
+        if (lacoDaCopia) {
+            window.cancelAnimationFrame(lacoDaCopia);
+            lacoDaCopia = 0;
+        }
+        if (telaDeCopia) {
+            telaDeCopia.style.display = "none";
+        }
+    }
 
     function previaGiganteNaSamsung(playerState) {
         if (
@@ -4701,7 +4741,7 @@
         }
         previaGigante = { url: playerState.url, elemento: previaHtml.elemento };
         document.documentElement.classList.add("previa-gigante");
-        attachManagedVideo(previaHtml.elemento, playerState.url, { kind: "preview", muted: false, suppressErrors: true });
+        copiarQuadros(previaHtml.elemento);
         state.player.engine = "html5";
         renderPlayer();
         focusPlayerOverlay();
@@ -4715,8 +4755,8 @@
         const desfeita = previaGigante;
         previaGigante = null;
         document.documentElement.classList.remove("previa-gigante");
+        pararCopia();
         if (desfeita.elemento.isConnected) {
-            attachManagedVideo(desfeita.elemento, desfeita.url, { kind: "preview", muted: false, suppressErrors: true });
             previaHtml = { url: desfeita.url, elemento: desfeita.elemento };
         }
         return true;
