@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.2.1";
+    const APP_VERSION = "1.2.2";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1148,7 +1148,8 @@
                 "fundo html " + fundo(document.documentElement) + " body " + fundo(document.body) +
                     " player " + fundo(dom.playerOverlay),
                 "tela " + window.innerWidth + "x" + window.innerHeight + " dpr " + (window.devicePixelRatio || 1),
-                "player e area sem recorte (overflow): " +
+                "previa gigante: " + simNao(document.documentElement.classList.contains("previa-gigante")) +
+                    "  player e area sem recorte (overflow): " +
                     (dom.playerOverlay ? getComputedStyle(dom.playerOverlay).overflow : "-") + " / " +
                     (dom.playerOverlay && dom.playerOverlay.querySelector(".player-stage")
                         ? getComputedStyle(dom.playerOverlay.querySelector(".player-stage")).overflow
@@ -4091,7 +4092,7 @@
         if (!shouldKeepLivePreview) {
             stopNativePlayer();
         }
-        const voltouParaPrevia = devolverPlayerParaPrevia();
+        const voltouParaPrevia = desfazerPreviaGigante() || devolverPlayerParaPrevia();
         if (!voltouParaPrevia) {
             destroyManagedHls("player");
             resetVideoElement(dom.playerVideo);
@@ -4680,7 +4681,51 @@
         return !/Tizen/i.test(navigator.userAgent || "");
     }
 
+    // Teste na Samsung (1.2.2): em tela cheia, em vez do <video> do player, a PROPRIA
+    // previa cresce para a tela inteira e recomeca nesse tamanho. O video da previa e o
+    // unico que a Samsung mostrou ate aqui (1.1.4 a 1.2.1 descartaram fundo, tamanho,
+    // camada fixa e recorte); se aparecer, o problema e o <video> estar na camada do player.
+    let previaGigante = null;
+
+    function previaGiganteNaSamsung(playerState) {
+        if (
+            previaPodeIrParaTelaCheia() ||
+            playerState.mediaKind === "image" ||
+            !isLiveLikeCatalogType(playerState.type) ||
+            !previaHtml ||
+            previaHtml.url !== playerState.url ||
+            !previaHtml.elemento ||
+            !previaHtml.elemento.isConnected
+        ) {
+            return false;
+        }
+        previaGigante = { url: playerState.url, elemento: previaHtml.elemento };
+        document.documentElement.classList.add("previa-gigante");
+        attachManagedVideo(previaHtml.elemento, playerState.url, { kind: "preview", muted: false, suppressErrors: true });
+        state.player.engine = "html5";
+        renderPlayer();
+        focusPlayerOverlay();
+        return true;
+    }
+
+    function desfazerPreviaGigante() {
+        if (!previaGigante) {
+            return false;
+        }
+        const desfeita = previaGigante;
+        previaGigante = null;
+        document.documentElement.classList.remove("previa-gigante");
+        if (desfeita.elemento.isConnected) {
+            attachManagedVideo(desfeita.elemento, desfeita.url, { kind: "preview", muted: false, suppressErrors: true });
+            previaHtml = { url: desfeita.url, elemento: desfeita.elemento };
+        }
+        return true;
+    }
+
     function promoverPreviaParaPlayer(playerState) {
+        if (previaGiganteNaSamsung(playerState)) {
+            return true;
+        }
         if (
             !previaPodeIrParaTelaCheia() ||
             nativeAvplay() ||

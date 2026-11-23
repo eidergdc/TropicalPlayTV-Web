@@ -3693,3 +3693,27 @@ html.app-escalado .player-overlay,
 html.app-escalado .player-stage {
     overflow: visible !important;
 }
+
+/* Teste 1.2.2 na Samsung: a previa ocupa a tela inteira por baixo dos controles do
+   player (que fica transparente), no lugar do <video> do player. */
+html.previa-gigante .detail-preview-shell {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 1920px !important;
+    height: 1080px !important;
+    z-index: 9998 !important;
+    border-radius: 0 !important;
+}
+html.previa-gigante .detail-preview-fallback,
+html.previa-gigante .detail-preview-shade {
+    display: none !important;
+}
+html.previa-gigante .player-overlay,
+html.previa-gigante .player-stage,
+html.previa-gigante .player-video {
+    background: transparent !important;
+}
+html.previa-gigante .player-video {
+    display: none !important;
+}
