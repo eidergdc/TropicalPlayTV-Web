@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.4.1";
+    const APP_VERSION = "1.4.2";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1411,10 +1411,12 @@
         }
 
         showLoading("Restaurando acesso...");
+        etapaDaAbertura("Conectando ao servidor...", 25);
 
         let profile = savedProfile;
         if (savedCode) {
             const accessResult = await checkDeviceAccess(savedCode);
+            etapaDaAbertura("Validando acesso...", 45);
             if (accessResult.status === "alreadyInUse") {
                 hideLoading();
                 setScreen("code");
@@ -1460,8 +1462,10 @@
 
         if (savedServer) {
             state.selectedServer = savedServer;
+            etapaDaAbertura("Carregando canais e filmes...", 70);
             try {
                 await loadHomeData();
+                etapaDaAbertura("Quase pronto...", 92);
                 hideLoading();
                 setScreen("home");
                 showToast("Sessao restaurada.", "success");
@@ -6756,6 +6760,38 @@
         state.screen = screen;
         localStorage.setItem(STORAGE_KEYS.lastScreen, screen);
         render();
+        if (screen !== "splash") {
+            etapaDaAbertura(null, -1, true);
+        }
+    }
+
+    // Abertura (index.html, #abertura): texto e barra do carregamento; "fechar" quando a
+    // primeira tela de verdade (inicio, codigo, pagamento) ja esta desenhada embaixo.
+    function etapaDaAbertura(texto, pct, fechar) {
+        const abertura = window.TPAbertura;
+        if (!abertura) return;
+        if (fechar) {
+            abertura.fechar();
+            return;
+        }
+        abertura.etapa(texto, pct);
+    }
+
+    // Capas para a parede da abertura: as ultimas vistas nesta TV (filmes e series).
+    function guardarCapasDaAbertura(itens) {
+        try {
+            const novas = itens
+                .map(function (item) { return String(item.stream_icon || item.cover || ""); })
+                .filter(function (url) { return /^https?:\/\//i.test(url); });
+            if (novas.length < 4) return;
+            const antigas = JSON.parse(localStorage.getItem("tp_abertura_capas") || "[]") || [];
+            const juntas = novas.concat(antigas).filter(function (url, i, lista) {
+                return lista.indexOf(url) === i;
+            }).slice(0, 24);
+            localStorage.setItem("tp_abertura_capas", JSON.stringify(juntas));
+        } catch (error) {
+            // Sem localStorage a abertura fica so com a imagem de fundo.
+        }
     }
 
     function render() {
@@ -6819,6 +6855,10 @@
 
         if (dom.homeAppVersion) {
             dom.homeAppVersion.textContent = label;
+        }
+
+        if (window.TPAbertura) {
+            window.TPAbertura.versao(APP_VERSION);
         }
     }
 
@@ -7788,6 +7828,9 @@
 
         const visibleItemsState = visibleCatalogItems(items, activeCategory);
         state.catalog.itemWindowStartIndex = visibleItemsState.startIndex;
+        if (posterLayout) {
+            guardarCapasDaAbertura(visibleItemsState.items);
+        }
 
         dom.itemList.innerHTML = visibleItemsState.items
             .map(function (item, visibleIndex) {
