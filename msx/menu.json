@@ -1,0 +1,15 @@
+{
+  "action": "link:{PREFIX}{SERVER}/",
+  "restore": false,
+  "style": "flat",
+  "menu": [
+    {
+      "icon": "tv",
+      "label": "Tropical Play",
+      "data": {
+        "type": "pages",
+        "pages": [{ "items": [{ "type": "default", "layout": "0,0,12,6", "title": "Tropical Play", "action": "link:{PREFIX}{SERVER}/" }] }]
+      }
+    }
+  ]
+}
