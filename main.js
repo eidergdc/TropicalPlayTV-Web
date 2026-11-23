@@ -1,7 +1,9 @@
 (function () {
-    // Versao do app web (o MSX abre este app em tv.tropicalplaytv.com). Separada da do
-    // app da Samsung, de onde ele veio.
-    const APP_VERSION = "web 1.0.1";
+    // Versao do app web (o MSX abre este app em tv.tropicalplaytv.com). Segue a numeracao
+    // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
+    // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
+    // ?v= de index.html e de msx/menu.json.
+    const APP_VERSION = "1.0.9";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
