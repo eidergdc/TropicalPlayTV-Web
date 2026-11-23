@@ -3694,18 +3694,32 @@ html.app-escalado .player-stage {
     overflow: visible !important;
 }
 
-/* Tela cheia na Samsung (1.2.3): um canvas em tela cheia copia os quadros da previa,
-   que continua pequena e tocando no lugar dela. O player fica transparente por cima,
-   so com os controles. */
-#telaCheiaPorCopia {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 1920px;
-    height: 1080px;
+/* Tela cheia na Samsung (1.2.9): a previa, tocando, e esticada por transform (no
+   main.js) ate cobrir a tela. Some todo o resto do catalogo; os ancestrais param de
+   recortar; o player fica transparente por cima, so com os controles. */
+html.previa-gigante .topbar,
+html.previa-gigante .footer-hint,
+html.previa-gigante .catalog-sidebar,
+html.previa-gigante .item-list,
+html.previa-gigante .detail-card > *:not(.detail-preview-shell),
+html.previa-gigante .detail-preview-fallback,
+html.previa-gigante .detail-preview-shade {
+    visibility: hidden !important;
+}
+html.previa-gigante .screen-stack,
+html.previa-gigante .catalog-screen,
+html.previa-gigante .catalog-grid,
+html.previa-gigante .catalog-main,
+html.previa-gigante .detail-card {
+    overflow: visible !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+html.previa-gigante .detail-preview-shell {
+    position: relative;
     z-index: 9998;
-    background: #000;
-    display: none;
+    border-radius: 0 !important;
 }
 html.previa-gigante .player-overlay,
 html.previa-gigante .player-stage,

@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.2.8";
+    const APP_VERSION = "1.2.9";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -4720,6 +4720,27 @@
         quadro();
     }
 
+    function esticarPrevia(video) {
+        const moldura = video.closest(".detail-preview-shell") || video;
+        const caixa = moldura.getBoundingClientRect();
+        document.documentElement.classList.add("previa-gigante");
+        if (!(caixa.width > 0 && caixa.height > 0)) {
+            return;
+        }
+        moldura.style.transformOrigin = "0 0";
+        moldura.style.transform =
+            "translate(" + -caixa.left + "px, " + -caixa.top + "px) " +
+            "scale(" + 1920 / caixa.width + ", " + 1080 / caixa.height + ")";
+    }
+
+    function desfazerEsticada(video) {
+        const moldura = video && video.closest ? video.closest(".detail-preview-shell") : null;
+        if (moldura) {
+            moldura.style.transform = "";
+            moldura.style.transformOrigin = "";
+        }
+    }
+
     function pararCopia() {
         if (lacoDaCopia) {
             window.cancelAnimationFrame(lacoDaCopia);
@@ -4731,10 +4752,11 @@
     }
 
     function previaGiganteNaSamsung(playerState) {
-        // Desligada na 1.2.8: a copia por canvas ficou preta (o video da TV nao entrega
-        // quadros a pagina). A tela cheia na Samsung agora e o <video> nativo com .m3u8.
+        // 1.2.9: a copia por canvas (1.2.3) ficou preta - o video da TV nao entrega
+        // quadros a pagina. Agora a propria previa, tocando, e ESTICADA por transform
+        // ate cobrir a tela: sem recomecar e sem sair do lugar (a TV fixa onde desenha
+        // quando o video comeca; 1.1.4 o moveu, 1.2.2 o recomecou grande).
         if (
-            true ||
             previaPodeIrParaTelaCheia() ||
             playerState.mediaKind === "image" ||
             !isLiveLikeCatalogType(playerState.type) ||
@@ -4746,8 +4768,7 @@
             return false;
         }
         previaGigante = { url: playerState.url, elemento: previaHtml.elemento };
-        document.documentElement.classList.add("previa-gigante");
-        copiarQuadros(previaHtml.elemento);
+        esticarPrevia(previaHtml.elemento);
         state.player.engine = "html5";
         renderPlayer();
         focusPlayerOverlay();
@@ -4761,6 +4782,7 @@
         const desfeita = previaGigante;
         previaGigante = null;
         document.documentElement.classList.remove("previa-gigante");
+        desfazerEsticada(desfeita.elemento);
         pararCopia();
         if (desfeita.elemento.isConnected) {
             previaHtml = { url: desfeita.url, elemento: desfeita.elemento };
