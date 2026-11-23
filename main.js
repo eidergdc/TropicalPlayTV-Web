@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.4";
+    const APP_VERSION = "1.1.5";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -4514,8 +4514,17 @@
         marca.parentNode.removeChild(marca);
     }
 
+    // Samsung (Tizen) dentro do MSX: o video em tela cheia vai para a camada atras da
+    // pagina, e a TV fixa a posicao dessa camada quando o video comeca. Movido da previa
+    // para o player, ele continuava desenhado no quadradinho da previa (visto na TV).
+    // La a tela cheia abre o canal de novo, num player que ja nasce em tela cheia.
+    function previaPodeIrParaTelaCheia() {
+        return !/Tizen/i.test(navigator.userAgent || "");
+    }
+
     function promoverPreviaParaPlayer(playerState) {
         if (
+            !previaPodeIrParaTelaCheia() ||
             nativeAvplay() ||
             playerState.mediaKind === "image" ||
             !previaHtml ||
