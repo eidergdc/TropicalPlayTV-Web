@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.7";
+    const APP_VERSION = "1.1.8";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1044,10 +1044,97 @@
                 " src=" + String(video.currentSrc || "").slice(0, 12)
             );
         }
+        // Modos de tela cheia para testar na TV, trocados pelas teclas 1 a 4 com o player
+        // aberto. O video toca (painel: rs=4, tempo andando) com os fundos transparentes,
+        // mas a Samsung nao o mostra em tela cheia; a previa, pequena, aparece.
+        //   1 = como esta
+        //   2 = API de tela cheia do navegador no player (requestFullscreen)
+        //   3 = video 2px menor que a tela (fora do modo "video da tela inteira")
+        //   4 = video sem "cover" e sem tamanho minimo (contain, 100%)
+        let modoTelaCheia = 1;
+        const NOMES_DOS_MODOS = { 1: "normal", 2: "fullscreen API", 3: "2px menor", 4: "contain" };
+        function sairDaTelaCheiaDoNavegador() {
+            try {
+                const saida = document.exitFullscreen || document.webkitExitFullscreen;
+                if ((document.fullscreenElement || document.webkitFullscreenElement) && saida) {
+                    saida.call(document);
+                }
+            } catch (error) {
+                console.log("exitFullscreen:", error);
+            }
+        }
+        function aplicarModoTelaCheia(modo) {
+            modoTelaCheia = modo;
+            const raiz = document.documentElement;
+            raiz.classList.toggle("tela-quase-cheia", modo === 3);
+            raiz.classList.toggle("tela-contain", modo === 4);
+            if (modo === 2) {
+                const alvo = dom.playerOverlay;
+                const pedir = alvo && (alvo.requestFullscreen || alvo.webkitRequestFullscreen);
+                if (pedir) {
+                    try {
+                        const promessa = pedir.call(alvo);
+                        if (promessa && promessa.catch) {
+                            promessa.catch(function (error) {
+                                ultimoErroDoModo = String(error && (error.name || error.message));
+                            });
+                        }
+                    } catch (error) {
+                        ultimoErroDoModo = String(error && (error.name || error.message));
+                    }
+                } else {
+                    ultimoErroDoModo = "sem requestFullscreen";
+                }
+            } else {
+                sairDaTelaCheiaDoNavegador();
+            }
+        }
+        let ultimoErroDoModo = "";
+        document.addEventListener(
+            "keydown",
+            function (event) {
+                if (!state.player.open || !/^[1-4]$/.test(String(event.key || ""))) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.stopImmediatePropagation) {
+                    event.stopImmediatePropagation();
+                }
+                ultimoErroDoModo = "";
+                aplicarModoTelaCheia(Number(event.key));
+                atualizar();
+            },
+            true
+        );
+
         function fundo(elemento) {
             return elemento ? getComputedStyle(elemento).backgroundColor : "-";
         }
+        // Rodizio automatico dos modos com o player aberto, a cada 8 s: as teclas
+        // numericas podem nao chegar a pagina dentro do MSX.
+        let playerAbertoDesde = 0;
+        function rodizioDosModos() {
+            if (!state.player.open) {
+                if (playerAbertoDesde) {
+                    playerAbertoDesde = 0;
+                    aplicarModoTelaCheia(1);
+                }
+                return;
+            }
+            if (!playerAbertoDesde) {
+                playerAbertoDesde = Date.now();
+                return;
+            }
+            const modo = (Math.floor((Date.now() - playerAbertoDesde) / 8000) % 4) + 1;
+            if (modo !== modoTelaCheia) {
+                ultimoErroDoModo = "";
+                aplicarModoTelaCheia(modo);
+            }
+        }
+
         function atualizar() {
+            rodizioDosModos();
             const avplay = nativeAvplay();
             let estadoAvplay = "-";
             if (avplay) {
@@ -1068,6 +1155,9 @@
                 "fundo html " + fundo(document.documentElement) + " body " + fundo(document.body) +
                     " player " + fundo(dom.playerOverlay),
                 "tela " + window.innerWidth + "x" + window.innerHeight + " dpr " + (window.devicePixelRatio || 1),
+                "MODO TELA CHEIA: " + modoTelaCheia + " (" + NOMES_DOS_MODOS[modoTelaCheia] + ")  - troca sozinho a cada 8 s" +
+                    (ultimoErroDoModo ? "  erro: " + ultimoErroDoModo : "") +
+                    "  fullscreen ativo: " + simNao(document.fullscreenElement || document.webkitFullscreenElement),
             ].join("\n");
         }
         atualizar();

@@ -3683,3 +3683,17 @@ html.app-tizen .player-overlay[data-player-engine="html5"] .player-stage,
 html.app-tizen .player-overlay[data-player-engine="html5"] .player-video {
     background: transparent !important;
 }
+
+/* Modos de teste da tela cheia na Samsung (painel de diagnostico, teclas 3 e 4). */
+html.tela-quase-cheia .player-video {
+    inset: 1px !important;
+    width: calc(100% - 2px) !important;
+    height: calc(100% - 2px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
+html.tela-contain .player-video {
+    object-fit: contain !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
