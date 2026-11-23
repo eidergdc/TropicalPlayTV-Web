@@ -5,7 +5,18 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.4.0">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.4.1">
+    <script>
+    // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
+    // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
+    // layout feito com flex. "?semgrid=1" forca o modo, para testar num navegador novo.
+    (function () {
+        var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
+        if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
+        document.documentElement.className += " sem-grid";
+        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.4.1">');
+    })();
+    </script>
     <style>
     /* Escala do app (ver o script abaixo): o corpo tem sempre 1920x1080 e encolhe ou
        cresce por transform. vw/vh do style.css viram --vw/--vh, 1% desse 1920x1080. */
@@ -99,7 +110,7 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.4.0" defer></script>
+    <script src="./main.js?v=1.4.1" defer></script>
 </head>
 <body>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">
