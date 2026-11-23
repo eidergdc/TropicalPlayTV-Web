@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.1";
+    const APP_VERSION = "1.1.2";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -947,6 +947,61 @@
         });
     }
 
+    // Eventos do video do player. Num conjunto, e nao soltos no bindEvents, porque no app
+    // web o elemento do player troca de lugar com o da previa (promoverPreviaParaPlayer):
+    // os eventos acompanham o elemento que estiver no papel de player.
+    const EVENTOS_DO_PLAYER = {
+        ended: function () {
+            handlePlayerPlaybackEnded();
+        },
+        error: function () {
+            showToast("Nao foi possivel reproduzir este video.", "error");
+        },
+        loadedmetadata: function () {
+            handlePlayerVideoTelemetry();
+        },
+        durationchange: function () {
+            handlePlayerVideoTelemetry();
+        },
+        timeupdate: function () {
+            handlePlayerVideoTelemetry();
+        },
+        play: function () {
+            handlePlayerVideoPlaybackChange();
+        },
+        pause: function () {
+            handlePlayerVideoPlaybackChange();
+        },
+        waiting: function () {
+            state.player.buffering = true;
+        },
+        playing: function () {
+            state.player.buffering = false;
+            markPlayerProgress(dom.playerVideo.currentTime, true);
+        },
+        stalled: function () {
+            state.player.buffering = false;
+        },
+        seeking: function () {
+            handlePlayerVideoTelemetry();
+        },
+        seeked: function () {
+            handlePlayerVideoTelemetry();
+        },
+    };
+
+    function ligarEventosDoPlayer(elemento) {
+        Object.keys(EVENTOS_DO_PLAYER).forEach(function (nome) {
+            elemento.addEventListener(nome, EVENTOS_DO_PLAYER[nome]);
+        });
+    }
+
+    function desligarEventosDoPlayer(elemento) {
+        Object.keys(EVENTOS_DO_PLAYER).forEach(function (nome) {
+            elemento.removeEventListener(nome, EVENTOS_DO_PLAYER[nome]);
+        });
+    }
+
     function bindEvents() {
         prenderVoltarDoMsx();
         document.addEventListener("keydown", onKeyDown, true);
@@ -968,27 +1023,7 @@
         if (dom.mediaInputKeyboard) {
             dom.mediaInputKeyboard.addEventListener("click", handleMediaInputKeyboardClick);
         }
-        dom.playerVideo.addEventListener("ended", handlePlayerPlaybackEnded);
-        dom.playerVideo.addEventListener("error", function () {
-            showToast("Nao foi possivel reproduzir este video.", "error");
-        });
-        dom.playerVideo.addEventListener("loadedmetadata", handlePlayerVideoTelemetry);
-        dom.playerVideo.addEventListener("durationchange", handlePlayerVideoTelemetry);
-        dom.playerVideo.addEventListener("timeupdate", handlePlayerVideoTelemetry);
-        dom.playerVideo.addEventListener("play", handlePlayerVideoPlaybackChange);
-        dom.playerVideo.addEventListener("pause", handlePlayerVideoPlaybackChange);
-        dom.playerVideo.addEventListener("waiting", function () {
-            state.player.buffering = true;
-        });
-        dom.playerVideo.addEventListener("playing", function () {
-            state.player.buffering = false;
-            markPlayerProgress(dom.playerVideo.currentTime, true);
-        });
-        dom.playerVideo.addEventListener("stalled", function () {
-            state.player.buffering = false;
-        });
-        dom.playerVideo.addEventListener("seeking", handlePlayerVideoTelemetry);
-        dom.playerVideo.addEventListener("seeked", handlePlayerVideoTelemetry);
+        ligarEventosDoPlayer(dom.playerVideo);
         if (dom.playerImage) {
             dom.playerImage.addEventListener("error", function () {
                 showToast("Nao foi possivel abrir esta imagem.", "error");
@@ -3868,6 +3903,10 @@
             return;
         }
 
+        if (promoverPreviaParaPlayer(playerState)) {
+            return;
+        }
+
         stopCatalogPreview();
         renderPlayer();
         focusPlayerOverlay();
@@ -3890,8 +3929,11 @@
         if (!shouldKeepLivePreview) {
             stopNativePlayer();
         }
-        destroyManagedHls("player");
-        resetVideoElement(dom.playerVideo);
+        const voltouParaPrevia = devolverPlayerParaPrevia();
+        if (!voltouParaPrevia) {
+            destroyManagedHls("player");
+            resetVideoElement(dom.playerVideo);
+        }
         if (dom.playerImage) {
             dom.playerImage.removeAttribute("src");
         }
@@ -3941,7 +3983,7 @@
         if (state.screen === "catalog") {
             if (shouldKeepLivePreview) {
                 syncNativePreviewAfterPaint();
-            } else {
+            } else if (!voltouParaPrevia) {
                 renderCatalogDetail(true);
             }
         }
@@ -4446,6 +4488,102 @@
             muted: false,
             suppressErrors: true,
         });
+        previaHtml = { url: url, elemento: previewVideo };
+    }
+
+    // --- Previa <-> tela cheia sem recarregar (app web) ---------------------------
+    //
+    // Na Samsung o AVPlay ja passa a previa para a tela cheia sem parar
+    // (promoteNativePreviewToPlayer). Fora dela, maximizar parava a previa e abria o
+    // canal de novo num segundo <video>: a tela escurecia, o som cortava e o canal
+    // recarregava - e o mesmo ao voltar. Aqui os dois <video> trocam de lugar: o que ja
+    // esta tocando vai para o player (com o mpegts.js/HLS dele) e o do player fica no
+    // lugar da previa. Mover um <video> no mesmo instante nao o pausa.
+    let previaHtml = null;
+    let previaPromovida = null;
+
+    function trocarDeLugar(a, b) {
+        const marca = document.createComment("troca");
+        a.parentNode.insertBefore(marca, a);
+        b.parentNode.insertBefore(a, b);
+        marca.parentNode.insertBefore(b, marca);
+        marca.parentNode.removeChild(marca);
+    }
+
+    function promoverPreviaParaPlayer(playerState) {
+        if (
+            nativeAvplay() ||
+            playerState.mediaKind === "image" ||
+            !previaHtml ||
+            previaHtml.url !== playerState.url ||
+            !(previewMpegtsInstance || previewHlsInstance)
+        ) {
+            return false;
+        }
+        const previa = previaHtml.elemento;
+        const doPlayer = dom.playerVideo;
+        if (!previa || !previa.isConnected || !doPlayer || !doPlayer.parentNode) {
+            return false;
+        }
+
+        trocarDeLugar(previa, doPlayer);
+        desligarEventosDoPlayer(doPlayer);
+        doPlayer.removeAttribute("id");
+        doPlayer.className = "detail-preview-video";
+        previa.id = "playerVideo";
+        previa.className = "player-video is-ready";
+        dom.playerVideo = previa;
+        ligarEventosDoPlayer(previa);
+
+        mpegtsInstance = previewMpegtsInstance;
+        previewMpegtsInstance = null;
+        hlsInstance = previewHlsInstance;
+        previewHlsInstance = null;
+
+        previaPromovida = { url: playerState.url, chave: state.catalog.detailKey, lugar: doPlayer };
+        previaHtml = null;
+
+        state.player.engine = "html5";
+        state.player.paused = previa.paused;
+        renderPlayer();
+        focusPlayerOverlay();
+        startPlayerStallMonitor();
+        return true;
+    }
+
+    // Volta o video da tela cheia para a previa, se o cliente nao trocou de canal no
+    // player. Devolve true quando devolveu: o closePlayer entao nao destroi nem recarrega.
+    function devolverPlayerParaPrevia() {
+        const promovida = previaPromovida;
+        previaPromovida = null;
+        if (
+            !promovida ||
+            nativeAvplay() ||
+            state.screen !== "catalog" ||
+            state.player.url !== promovida.url ||
+            state.catalog.detailKey !== promovida.chave ||
+            !promovida.lugar.isConnected
+        ) {
+            return false;
+        }
+
+        const tocando = dom.playerVideo;
+        const lugar = promovida.lugar;
+        trocarDeLugar(tocando, lugar);
+        desligarEventosDoPlayer(tocando);
+        tocando.removeAttribute("id");
+        tocando.className = "detail-preview-video is-ready";
+        lugar.id = "playerVideo";
+        lugar.className = "player-video";
+        dom.playerVideo = lugar;
+        ligarEventosDoPlayer(lugar);
+
+        previewMpegtsInstance = mpegtsInstance;
+        mpegtsInstance = null;
+        previewHlsInstance = hlsInstance;
+        hlsInstance = null;
+        previaHtml = { url: promovida.url, elemento: tocando };
+        return true;
     }
 
     function attachManagedVideo(videoElement, url, options) {
@@ -4613,6 +4751,7 @@
     }
 
     function stopCatalogPreview() {
+        previaHtml = null;
         stopNativeCatalogPreview();
         destroyManagedHls("preview");
         const previewVideo = dom.detailCard ? dom.detailCard.querySelector(".detail-preview-video") : null;
