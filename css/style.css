@@ -491,7 +491,7 @@ body[data-player-engine="avplay"] {
 }
 
 .login-panel {
-    width: min(860px, 86vw);
+    width: min(860px, calc(86 * var(--vw, 1vw)));
     min-height: 640px;
     padding: 34px 34px 30px;
     border-radius: 30px;
@@ -1066,7 +1066,7 @@ body[data-player-engine="avplay"] {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: clamp(160px, 18vh, 220px);
+    gap: clamp(160px, calc(18 * var(--vh, 1vh)), 220px);
     padding: 4px 0 12px;
 }
 
@@ -1091,7 +1091,7 @@ body[data-player-engine="avplay"] {
 }
 
 .home-card {
-    min-height: clamp(500px, 54vh, 590px);
+    min-height: clamp(500px, calc(54 * var(--vh, 1vh)), 590px);
     padding: 42px 30px;
     display: flex;
     flex-direction: column;
@@ -2556,8 +2556,8 @@ body[data-player-engine="avplay"] {
     position: fixed;
     left: 0;
     top: 0;
-    width: 100vw;
-    height: 100vh;
+    width: calc(100 * var(--vw, 1vw));
+    height: calc(100 * var(--vh, 1vh));
     z-index: 10034;
     background: rgba(2, 5, 12, 0.92);
     align-items: center;
@@ -2569,8 +2569,8 @@ body[data-player-engine="avplay"] {
     position: fixed;
     left: 0;
     top: 0;
-    width: 100vw;
-    height: 100vh;
+    width: calc(100 * var(--vw, 1vw));
+    height: calc(100 * var(--vh, 1vh));
     z-index: 10036;
     background: rgba(2, 5, 12, 0.9);
     align-items: center;
@@ -2606,7 +2606,7 @@ body[data-player-engine="avplay"] {
 }
 
 .network-dialog {
-    width: min(760px, calc(100vw - 90px));
+    width: min(760px, calc(calc(100 * var(--vw, 1vw)) - 90px));
     padding: 36px 40px 32px;
     border-radius: 30px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -2659,7 +2659,7 @@ body[data-player-engine="avplay"] {
 }
 
 .session-dialog {
-    width: min(820px, calc(100vw - 90px));
+    width: min(820px, calc(calc(100 * var(--vw, 1vw)) - 90px));
     padding: 36px 40px 32px;
     border-radius: 30px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -2720,7 +2720,7 @@ body[data-player-engine="avplay"] {
 }
 
 .exit-dialog {
-    width: min(720px, calc(100vw - 90px));
+    width: min(720px, calc(calc(100 * var(--vw, 1vw)) - 90px));
     padding: 36px 40px 32px;
     border-radius: 30px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -2796,7 +2796,7 @@ body[data-player-engine="avplay"] {
 }
 
 .resume-dialog {
-    width: min(760px, calc(100vw - 80px));
+    width: min(760px, calc(calc(100 * var(--vw, 1vw)) - 80px));
     padding: 34px 38px 30px;
     border-radius: 30px;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2807,8 +2807,8 @@ body[data-player-engine="avplay"] {
 }
 
 .search-dialog {
-    width: min(1080px, calc(100vw - 92px));
-    max-height: calc(100vh - 88px);
+    width: min(1080px, calc(calc(100 * var(--vw, 1vw)) - 92px));
+    max-height: calc(calc(100 * var(--vh, 1vh)) - 88px);
     overflow-y: auto;
     margin: 0 auto;
     padding: 34px 38px 30px;
@@ -2822,7 +2822,7 @@ body[data-player-engine="avplay"] {
 }
 
 .media-input-dialog {
-    width: min(1180px, calc(100vw - 92px));
+    width: min(1180px, calc(calc(100 * var(--vw, 1vw)) - 92px));
     margin: 0 auto;
     padding: 34px 38px 30px;
     border-radius: 32px;
@@ -3159,8 +3159,8 @@ body[data-player-engine="avplay"] {
 .player-overlay {
     position: fixed;
     inset: 0;
-    width: 100vw;
-    height: 100vh;
+    width: calc(100 * var(--vw, 1vw));
+    height: calc(100 * var(--vh, 1vh));
     display: block;
     padding: 0;
     margin: 0;
@@ -3281,7 +3281,7 @@ body[data-player-engine="avplay"] {
 }
 
 .player-meta-row h2 {
-    max-width: min(64vw, 920px);
+    max-width: min(calc(64 * var(--vw, 1vw)), 920px);
     font-size: 1.68rem;
     color: #fff;
     text-shadow: 0 6px 24px rgba(0, 0, 0, 0.36);
@@ -3330,7 +3330,7 @@ body[data-player-engine="avplay"] {
 }
 
 .player-recovery-card {
-    width: min(860px, calc(100vw - 88px));
+    width: min(860px, calc(calc(100 * var(--vw, 1vw)) - 88px));
     padding: 34px 38px 32px;
     border-radius: 30px;
     border: 1px solid rgba(255, 255, 255, 0.14);
@@ -3525,8 +3525,8 @@ body[data-player-engine="avplay"] {
     z-index: 1;
     width: 100% !important;
     height: 100% !important;
-    min-width: 100vw;
-    min-height: 100vh;
+    min-width: calc(100 * var(--vw, 1vw));
+    min-height: calc(100 * var(--vh, 1vh));
     max-width: none;
     max-height: none;
     object-fit: cover;

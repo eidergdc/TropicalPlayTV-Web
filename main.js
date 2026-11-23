@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.0.9";
+    const APP_VERSION = "1.1.0";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -916,7 +916,39 @@
         dom.appShell.appendChild(overlayNode);
     }
 
+    // Voltar do controle dentro do MSX. Na pagina aberta por "link:" (Android, Fire TV) o
+    // botao Voltar nao chega como tecla: o aparelho volta no historico do navegador, e o
+    // app ficava parado (no player, so o menu da tela devolvia o cliente). Como no
+    // SmartMSX, o app empilha uma entrada no historico e, a cada volta, empilha de novo e
+    // trata como o Voltar do proprio app (Escape, ja mapeado em normalizeKey).
+    let saindoPeloHistorico = false;
+
+    function prenderVoltarDoMsx() {
+        if (window.tizen) {
+            return;
+        }
+        try {
+            window.history.pushState({ tropicalPlay: true }, "", window.location.href);
+        } catch (error) {
+            console.log("pushState indisponivel, Voltar pode sair do app:", error);
+            return;
+        }
+        window.addEventListener("popstate", function () {
+            if (saindoPeloHistorico) {
+                return;
+            }
+            try {
+                window.history.pushState({ tropicalPlay: true }, "", window.location.href);
+            } catch (error) {
+                console.log("pushState falhou ao reprender o Voltar:", error);
+            }
+            document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+            document.dispatchEvent(new KeyboardEvent("keyup", { key: "Escape", bubbles: true, cancelable: true }));
+        });
+    }
+
     function bindEvents() {
+        prenderVoltarDoMsx();
         document.addEventListener("keydown", onKeyDown, true);
         document.addEventListener("keyup", onKeyUp, true);
         window.addEventListener("resize", scheduleNativePlayerLayoutSync);
@@ -1393,9 +1425,10 @@
         }
 
         // Dentro do MSX a pagina foi aberta por "link:" e window.close nao fecha nada:
-        // voltar no historico devolve o cliente ao MSX.
+        // solta o Voltar preso (prenderVoltarDoMsx) e volta no historico ate o MSX.
+        saindoPeloHistorico = true;
         try {
-            window.history.back();
+            window.history.go(-Math.max(1, window.history.length - 1));
         } catch (error) {
             console.log("History back failed:", error);
         }

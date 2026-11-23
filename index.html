@@ -5,13 +5,28 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.0.9">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.1.0">
+    <style>
+    /* Escala do app (ver o script abaixo): o corpo tem sempre 1920x1080 e encolhe ou
+       cresce por transform. vw/vh do style.css viram --vw/--vh, 1% desse 1920x1080. */
+    html.app-escalado { overflow: hidden; background: #050b12; }
+    html.app-escalado body {
+        position: absolute; left: 0; top: 0;
+        width: 1920px !important; height: 1080px !important; overflow: hidden;
+        transform-origin: 0 0;
+        transform: translate(var(--app-dx, 0px), var(--app-dy, 0px)) scale(var(--app-escala, 1));
+    }
+    </style>
     <script>
     // O layout foi desenhado em pixels para a tela de 1920x1080 da Samsung. No MSX
     // (Android, Fire TV, LG, VIDAA) a pagina abre numa tela de outro tamanho - no
     // Android costuma ser 960x540 com cada ponto dobrado -, e tudo saia ampliado e
-    // encavalado. Aqui o app continua desenhado em 1920x1080 e a escala inteira encolhe
-    // ou cresce ate caber, sem cortar nada.
+    // encavalado. O app continua desenhado em 1920x1080 e o corpo inteiro e escalado
+    // ate caber, centralizado.
+    //
+    // Por transform, e nao por "zoom": com zoom a tela ajustava, mas o Fire Stick
+    // desenhava o video numa camada que ignora o zoom - a previa saia preta (com som) e
+    // a tela cheia ocupava so um quarto da TV. Transform o video acompanha.
     (function () {
         var LARGURA = 1920, ALTURA = 1080;
         function ajustarEscala() {
@@ -20,7 +35,12 @@
             var altura = window.innerHeight || raiz.clientHeight;
             var escala = Math.min(largura / LARGURA, altura / ALTURA);
             if (!(escala > 0)) return;
-            raiz.style.zoom = Math.abs(escala - 1) < 0.01 ? "" : String(escala);
+            raiz.classList.add("app-escalado");
+            raiz.style.setProperty("--app-escala", String(escala));
+            raiz.style.setProperty("--app-dx", ((largura - LARGURA * escala) / 2) + "px");
+            raiz.style.setProperty("--app-dy", ((altura - ALTURA * escala) / 2) + "px");
+            raiz.style.setProperty("--vw", (LARGURA / 100) + "px");
+            raiz.style.setProperty("--vh", (ALTURA / 100) + "px");
             window.__telaDoApp = { largura: largura, altura: altura, escala: escala };
         }
         ajustarEscala();
@@ -31,7 +51,7 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.0.9" defer></script>
+    <script src="./main.js?v=1.1.0" defer></script>
 </head>
 <body>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">
