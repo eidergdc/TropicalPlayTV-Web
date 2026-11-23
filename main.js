@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.3.2";
+    const APP_VERSION = "1.3.3";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1163,7 +1163,21 @@
         setInterval(atualizar, 1000);
     }
 
+    // Samsung: o <video> do player vai para o corpo da pagina, como primeiro filho - o
+    // mesmo arranjo da pagina de teste que mostrou video em tela cheia nesta TV (1.3.0,
+    // 1.3.1). Dentro do player ele fica sob o app-shell, com o catalogo, os paineis e as
+    // camadas decorativas, e ficava preto mesmo por https (1.3.2). Enquanto toca, o CSS
+    // esconde o resto e deixa so os controles do player por cima.
+    function videoDaSamsungNoCorpo() {
+        if (!/Tizen/i.test(navigator.userAgent || "") || !dom.playerVideo || !document.body) {
+            return;
+        }
+        document.body.insertBefore(dom.playerVideo, document.body.firstChild);
+        document.documentElement.classList.add("video-no-corpo");
+    }
+
     function bindEvents() {
+        videoDaSamsungNoCorpo();
         prenderVoltarDoMsx();
         iniciarDiagnosticoTizen();
         document.addEventListener("keydown", onKeyDown, true);
