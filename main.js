@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.3.7";
+    const APP_VERSION = "1.3.8";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1367,7 +1367,38 @@
         showToast("Nao foi possivel restaurar o acesso. Valide seu codigo novamente.", "error");
     }
 
+    // Codigo vindo do app MSX antigo (tropicalplaymsx.web.app): o plugin de sessao de la
+    // le o codigo guardado na TV e abre este app com ?codigo=. Assim o cliente migrado
+    // entra direto, sem redigitar. O codigo sai do endereco logo em seguida.
+    function codigoVindoDoMsx() {
+        let codigo = "";
+        try {
+            codigo = new URLSearchParams(window.location.search).get("codigo") || "";
+        } catch (error) {
+            const achado = /[?&]codigo=([^&#]*)/.exec(window.location.search || "");
+            codigo = achado ? decodeURIComponent(achado[1]) : "";
+        }
+        codigo = String(codigo).replace(/[^0-9A-Za-z]/g, "");
+        if (!codigo) {
+            return;
+        }
+        try {
+            const limpo = window.location.pathname + window.location.search.replace(/([?&])codigo=[^&#]*&?/, "$1").replace(/[?&]$/, "") + window.location.hash;
+            window.history.replaceState(window.history.state, "", limpo);
+        } catch (error) {
+            console.log("Nao tirei o codigo do endereco:", error);
+        }
+        if (localStorage.getItem(STORAGE_KEYS.userCode) === codigo) {
+            return;
+        }
+        localStorage.removeItem(STORAGE_KEYS.profile);
+        localStorage.removeItem(STORAGE_KEYS.selectedServer);
+        localStorage.setItem(STORAGE_KEYS.userCode, codigo);
+        localStorage.setItem(STORAGE_KEYS.rememberedCode, codigo);
+    }
+
     async function restoreSession() {
+        codigoVindoDoMsx();
         const savedCode = localStorage.getItem(STORAGE_KEYS.userCode);
         const savedProfile = safeJsonParse(localStorage.getItem(STORAGE_KEYS.profile));
         const savedServer = safeJsonParse(localStorage.getItem(STORAGE_KEYS.selectedServer));
