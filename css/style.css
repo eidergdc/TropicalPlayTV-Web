@@ -3643,3 +3643,29 @@ html.app-escalado .detail-preview-video {
     opacity: 1;
     transition: none;
 }
+
+/* Lista de canais mais larga (app web): os nomes cabiam pela metade, em duas linhas,
+   enquanto a coluna de categorias sobrava. Categorias mais estreitas, canais e o painel
+   da previa dividem o resto. */
+html.app-escalado .catalog-screen:not([data-variant="poster"]) .catalog-grid {
+    grid-template-columns: minmax(330px, 0.6fr) minmax(0, 2fr);
+}
+html.app-escalado .catalog-screen:not([data-variant="poster"]) .catalog-main {
+    grid-template-columns: minmax(540px, 1.08fr) minmax(520px, 1fr);
+}
+
+/* Coracao de favoritar ao lado de cada canal. */
+html.app-escalado .media-card { position: relative; }
+html.app-escalado .media-card .media-copy-shell { padding-right: 64px; }
+.coracao {
+    position: absolute; right: 16px; top: 50%;
+    width: 52px; height: 52px; margin-top: -26px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; border: 2px solid transparent;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.coracao svg { width: 30px; height: 30px; fill: none; stroke: #e3e8ee; stroke-width: 1.8; }
+.coracao.ativo svg { fill: #ff4d6d; stroke: #ff4d6d; }
+.media-card.coracao-focado .coracao {
+    background: rgba(255, 255, 255, 0.16); border-color: #ff9051; transform: scale(1.12);
+}

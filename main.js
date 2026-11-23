@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.2";
+    const APP_VERSION = "1.1.3";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1927,6 +1927,10 @@
         }
 
         if (!isPosterCatalogType(state.catalog.type)) {
+            if (tratarTeclaDoCoracao(action, event)) {
+                return;
+            }
+
             if (action.type === "right" && state.catalog.zone === "categories" && catalogUsesSelectionModel()) {
                 event.preventDefault();
                 openFocusedSelectionCategory();
@@ -6893,6 +6897,7 @@
         ensureNodeVisible(dom.itemNodes && dom.itemNodes[itemVisibleIndex]);
         renderCatalogDetail();
         mostrarProgramacaoDoFoco();
+        marcarFocoDoCoracao();
     }
 
     // O painel da direita segue o canal SELECIONADO (o da previa). A programacao segue o
@@ -7370,7 +7375,7 @@
                     state.catalog.selectedItemIndex === index
                         ? " is-selected"
                         : "";
-                const favoriteMarkup = isItemFavorited(item) ? favoriteMarkerMarkup() : "";
+                const favoriteMarkup = isItemFavorited(item) && !mostraCoracao() ? favoriteMarkerMarkup() : "";
                 if (posterLayout) {
                     if (isCatalogSearchAction(item)) {
                         return (
@@ -7432,7 +7437,9 @@
                     "</div>" +
                     '<p class="media-copy">' +
                     escapeHtml(trimText(copy, 170)) +
-                    "</p></div></div>"
+                    "</p></div>" +
+                    (mostraCoracao() && !isCatalogSearchAction(item) ? coracaoMarkup(isItemFavorited(item)) : "") +
+                    "</div>"
                 );
             })
             .join("");
@@ -9708,6 +9715,65 @@
         }
 
         return "Use Atualizar na home ou valide o servidor novamente.";
+    }
+
+    // --- Coracao de favoritar na lista de canais (app web) ------------------------
+    //
+    // Como no SmartMSX: alem de segurar o OK, cada canal tem um coracao ao lado. Seta
+    // para a direita leva ao coracao do canal em foco, OK favorita ou desfavorita, seta
+    // para a esquerda volta ao canal. Pensado para quem nao descobre o "segurar OK".
+    let focoNoCoracao = false;
+
+    function mostraCoracao() {
+        return document.documentElement.classList.contains("app-escalado") && catalogSupportsFavoriteToggle();
+    }
+
+    function coracaoMarkup(ativo) {
+        return (
+            '<span class="coracao' +
+            (ativo ? " ativo" : "") +
+            '" aria-label="' +
+            (ativo ? "Remover dos favoritos" : "Adicionar aos favoritos") +
+            '">' +
+            '<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">' +
+            '<path d="M12 20.6l-1.3-1.2C5.6 14.8 2.4 11.9 2.4 8.3 2.4 5.4 4.7 3.2 7.5 3.2c1.7 0 3.3.8 4.5 2 1.2-1.2 2.8-2 4.5-2 2.8 0 5.1 2.2 5.1 5.1 0 3.6-3.2 6.5-8.3 11.1L12 20.6z"/>' +
+            "</svg></span>"
+        );
+    }
+
+    function marcarFocoDoCoracao() {
+        if (!dom.itemNodes) {
+            return;
+        }
+        const alvo = state.catalog.zone === "items" && focoNoCoracao ? dom.itemNodes[catalogVisibleItemIndex()] : null;
+        dom.itemNodes.forEach(function (no) {
+            no.classList.toggle("coracao-focado", no === alvo);
+        });
+    }
+
+    function tratarTeclaDoCoracao(action, event) {
+        if (state.catalog.zone !== "items" || !mostraCoracao() || isCatalogSearchAction(currentFocusedCatalogItem())) {
+            focoNoCoracao = false;
+            return false;
+        }
+        if (action.type === "right") {
+            event.preventDefault();
+            focoNoCoracao = true;
+            marcarFocoDoCoracao();
+            return true;
+        }
+        if (action.type === "left" && focoNoCoracao) {
+            event.preventDefault();
+            focoNoCoracao = false;
+            marcarFocoDoCoracao();
+            return true;
+        }
+        if (action.type === "enter" && focoNoCoracao) {
+            event.preventDefault();
+            toggleFavoriteForFocusedItem();
+            return true;
+        }
+        return false;
     }
 
     function favoriteMarkerMarkup() {
