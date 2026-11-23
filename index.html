@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.3.1">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.3.2">
     <style>
     /* Escala do app (ver o script abaixo): o corpo tem sempre 1920x1080 e encolhe ou
        cresce por transform. vw/vh do style.css viram --vw/--vh, 1% desse 1920x1080. */
@@ -60,21 +60,13 @@
     // Xtream continua em http: dentro do app do MSX na Samsung isso nao e bloqueado
     // (o SmartMSX faz o mesmo). Android e Fire TV seguem em http.
     //
-    // Teste 1.3.0: na Samsung, a abertura vai para a pagina isolada teste.html por https
-    // (video publico em tela cheia). Uma vez por sessao: Voltar devolve ao app.
-    (function () {
-        var jaFoi = false;
-        try { jaFoi = sessionStorage.getItem("testeTelaCheia") === "1"; } catch (erro) { jaFoi = true; }
-        if (/Tizen/i.test(navigator.userAgent || "") && !jaFoi) {
-            try { sessionStorage.setItem("testeTelaCheia", "1"); } catch (erro) {}
-            // href (e nao replace): Voltar na pagina de teste volta para o app.
-            location.href = "https://" + location.host + "/teste.html?v=1.3.1";
-        }
-    })();
-    // DESLIGADO na 1.2.7: por https a Samsung barrou os pedidos ao painel Xtream em http,
-    // tanto por fetch quanto por XMLHttpRequest ("Failed to fetch", nenhum servidor
-    // conectava), e o AVPlay continuou ausente (painel 1.2.5: https, avplay: nao).
-    // Mantido aqui como registro do que foi tentado.
+    //
+    // 1.3.2: a pagina de teste por https mostrou em tela cheia um video https (1.3.0) e
+    // um video http (1.3.1) - o mesmo tipo de link dos canais. O que barrava (os pedidos
+    // ao painel, em http) agora vai pela ponte do Firebase em https (main.js, urlPelaPonte).
+    if (/Tizen/i.test(navigator.userAgent || "") && location.protocol === "http:") {
+        location.replace("https://" + location.host + location.pathname + location.search + location.hash);
+    }
     </script>
     <script>
     // Samsung (Tizen) dentro do MSX: a biblioteca do player nativo da TV (AVPlay). O
@@ -97,7 +89,7 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.3.1" defer></script>
+    <script src="./main.js?v=1.3.2" defer></script>
 </head>
 <body>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">

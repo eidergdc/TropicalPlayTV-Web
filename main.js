@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.3.1";
+    const APP_VERSION = "1.3.2";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -4752,11 +4752,11 @@
     }
 
     function previaGiganteNaSamsung(playerState) {
-        // 1.2.9: a copia por canvas (1.2.3) ficou preta - o video da TV nao entrega
-        // quadros a pagina. Agora a propria previa, tocando, e ESTICADA por transform
-        // ate cobrir a tela: sem recomecar e sem sair do lugar (a TV fixa onde desenha
-        // quando o video comeca; 1.1.4 o moveu, 1.2.2 o recomecou grande).
+        // Desligada na 1.3.2: esticar a previa deixava a imagem no canto (1.2.9) e a
+        // copia por canvas ficava preta (1.2.3). Por https a Samsung mostra o video em tela
+        // cheia, entao o player abre normal.
         if (
+            true ||
             previaPodeIrParaTelaCheia() ||
             playerState.mediaKind === "image" ||
             !isLiveLikeCatalogType(playerState.type) ||
@@ -12338,6 +12338,16 @@
         return window.location.protocol === "https:" && /^http:/i.test(String(url || ""));
     }
 
+    // Na Samsung (https) nem o XMLHttpRequest passou (1.2.5). As listas do painel vao
+    // pela ponte do Firebase, em https (rota /msx/xapi do projeto MSX), que so atende
+    // player_api.php de um servidor cadastrado no codigo. O video continua direto.
+    const PONTE_DAS_LISTAS = "https://tropicalplaymsx.web.app/msx/xapi";
+
+    function urlPelaPonte(url) {
+        const codigo = String(state.code || (state.profile && state.profile.userNumber) || "").trim();
+        return PONTE_DAS_LISTAS + "?code=" + encodeURIComponent(codigo) + "&url=" + encodeURIComponent(url);
+    }
+
     function pedirPorXhr(url, acceptHeader, controller) {
         return new Promise(function (resolver, rejeitar) {
             const pedido = new XMLHttpRequest();
@@ -12400,7 +12410,11 @@
 
         try {
             if (pedidoMisto(url)) {
-                return await pedirPorXhr(url, acceptHeader, controller);
+                return await fetch(urlPelaPonte(url), {
+                    method: "GET",
+                    headers: { Accept: acceptHeader },
+                    signal: controller ? controller.signal : undefined,
+                });
             }
             return await fetch(url, {
                 method: "GET",
