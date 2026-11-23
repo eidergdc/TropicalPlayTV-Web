@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.3.6";
+    const APP_VERSION = "1.3.7";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1120,6 +1120,24 @@
         }
         if (event.target && event.target.closest && event.target.closest("#botaoVoltarNaTela")) {
             return;
+        }
+        // Clique na previa do canal: maximiza, como o OK no canal ja selecionado. E o que
+        // se espera no computador e no celular. Na Samsung a previa e o proprio <video>
+        // do player posicionado sobre a moldura (previa-no-corpo).
+        const naPrevia =
+            !state.player.open &&
+            state.screen === "catalog" &&
+            event.target &&
+            event.target.closest &&
+            (event.target.closest(".detail-preview-shell") ||
+                (event.target === dom.playerVideo && document.documentElement.classList.contains("previa-no-corpo")));
+        if (naPrevia) {
+            const canal = currentSelectedItem();
+            if (canal && catalogContentType(canal, state.catalog.type) === "live") {
+                event.preventDefault();
+                activateCatalogItem(canal);
+                return;
+            }
         }
         const no = event.target && event.target.closest ? event.target.closest("[data-foco-grupo]") : null;
         if (!no) {

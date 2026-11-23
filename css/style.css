@@ -3768,3 +3768,5 @@ html.com-ponteiro [data-foco-grupo] { cursor: pointer; }
 }
 html.com-ponteiro #botaoVoltarNaTela { display: block; }
 #botaoVoltarNaTela:hover { border-color: #ff9051; }
+html.com-ponteiro .detail-preview-shell,
+html.com-ponteiro.previa-no-corpo #playerVideo { cursor: pointer; }
