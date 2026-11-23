@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.2.5">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.2.6">
     <style>
     /* Escala do app (ver o script abaixo): o corpo tem sempre 1920x1080 e encolhe ou
        cresce por transform. vw/vh do style.css viram --vw/--vh, 1% desse 1920x1080. */
@@ -69,15 +69,22 @@
     // SmartMSX faz. Com ela o app usa o AVPlay, para o qual foi feito: tela cheia e a
     // passagem da previa sem recarregar. Sem ela, o player do navegador da Samsung
     // deixava a tela cheia preta. Fora da Samsung nao carrega nada.
+    // Diagnostico 1.2.6: registra se o webapis.js carregou ou falhou, e o que havia em
+    // window.webapis antes dele (o MSX pode deixar um webapis proprio, sem o AVPlay).
+    window.__webapis = { antes: window.webapis ? Object.keys(window.webapis).join(",") : "nada", carga: "-" };
     if (/Tizen/i.test(navigator.userAgent || "")) {
-        document.write('<script src="$WEBAPIS/webapis/webapis.js"><\/script>');
+        window.__webapis.carga = "pedida";
+        document.write(
+            '<script src="$WEBAPIS/webapis/webapis.js" ' +
+                'onload="window.__webapis.carga=\'carregou\'" onerror="window.__webapis.carga=\'falhou\'"><\/script>'
+        );
     }
     </script>
     <script src="lib/firebase-app.js"></script>
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.2.5" defer></script>
+    <script src="./main.js?v=1.2.6" defer></script>
 </head>
 <body>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">

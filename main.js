@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.2.5";
+    const APP_VERSION = "1.2.6";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1141,6 +1141,9 @@
             painel.textContent = [
                 "DIAGNOSTICO " + APP_VERSION + "  quadro(iframe): " + emQuadro() + "  " + location.protocol,
                 "tizen: " + simNao(window.tizen) + "  webapis: " + simNao(window.webapis) + "  avplay: " + simNao(avplay) + " (" + estadoAvplay + ")",
+                "webapis.js: " + (window.__webapis ? window.__webapis.carga : "-") +
+                    "  antes: " + (window.__webapis ? window.__webapis.antes : "-").slice(0, 60) +
+                    "  agora: " + (window.webapis ? Object.keys(window.webapis).join(",") : "nada").slice(0, 90),
                 "player aberto: " + simNao(state.player.open) + "  motor: " + (state.player.engine || "-") +
                     "  previa nativa: " + simNao(state.nativePreview && state.nativePreview.active),
                 "video player: " + descreverVideo(dom.playerVideo),
