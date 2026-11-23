@@ -6,6 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
     <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script>
+    // O layout foi desenhado em pixels para a tela de 1920x1080 da Samsung. No MSX
+    // (Android, Fire TV, LG, VIDAA) a pagina abre numa tela de outro tamanho - no
+    // Android costuma ser 960x540 com cada ponto dobrado -, e tudo saia ampliado e
+    // encavalado. Aqui o app continua desenhado em 1920x1080 e a escala inteira encolhe
+    // ou cresce ate caber, sem cortar nada.
+    (function () {
+        var LARGURA = 1920, ALTURA = 1080;
+        function ajustarEscala() {
+            var raiz = document.documentElement;
+            var largura = window.innerWidth || raiz.clientWidth;
+            var altura = window.innerHeight || raiz.clientHeight;
+            var escala = Math.min(largura / LARGURA, altura / ALTURA);
+            if (!(escala > 0)) return;
+            raiz.style.zoom = Math.abs(escala - 1) < 0.01 ? "" : String(escala);
+        }
+        ajustarEscala();
+        window.addEventListener("resize", ajustarEscala);
+    })();
+    </script>
     <script src="lib/firebase-app.js"></script>
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
