@@ -3,7 +3,7 @@
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.8";
+    const APP_VERSION = "1.1.9";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1047,12 +1047,15 @@
         // Modos de tela cheia para testar na TV, trocados pelas teclas 1 a 4 com o player
         // aberto. O video toca (painel: rs=4, tempo andando) com os fundos transparentes,
         // mas a Samsung nao o mostra em tela cheia; a previa, pequena, aparece.
+        // Rodada 1.1.8: normal, Fullscreen API (TypeError), 2px menor e contain - todos
+        // pretos. A previa pequena aparece. Rodada 1.1.9: o video fica pequeno no layout e
+        // e ampliado por transform ate a tela inteira.
         //   1 = como esta
-        //   2 = API de tela cheia do navegador no player (requestFullscreen)
-        //   3 = video 2px menor que a tela (fora do modo "video da tela inteira")
-        //   4 = video sem "cover" e sem tamanho minimo (contain, 100%)
+        //   2 = 1280x720 ampliado 1,5x
+        //   3 = 960x540 ampliado 2x
+        //   4 = 640x360 ampliado 3x
         let modoTelaCheia = 1;
-        const NOMES_DOS_MODOS = { 1: "normal", 2: "fullscreen API", 3: "2px menor", 4: "contain" };
+        const NOMES_DOS_MODOS = { 1: "normal", 2: "1280x720 x1.5", 3: "960x540 x2", 4: "640x360 x3" };
         function sairDaTelaCheiaDoNavegador() {
             try {
                 const saida = document.exitFullscreen || document.webkitExitFullscreen;
@@ -1066,28 +1069,10 @@
         function aplicarModoTelaCheia(modo) {
             modoTelaCheia = modo;
             const raiz = document.documentElement;
-            raiz.classList.toggle("tela-quase-cheia", modo === 3);
-            raiz.classList.toggle("tela-contain", modo === 4);
-            if (modo === 2) {
-                const alvo = dom.playerOverlay;
-                const pedir = alvo && (alvo.requestFullscreen || alvo.webkitRequestFullscreen);
-                if (pedir) {
-                    try {
-                        const promessa = pedir.call(alvo);
-                        if (promessa && promessa.catch) {
-                            promessa.catch(function (error) {
-                                ultimoErroDoModo = String(error && (error.name || error.message));
-                            });
-                        }
-                    } catch (error) {
-                        ultimoErroDoModo = String(error && (error.name || error.message));
-                    }
-                } else {
-                    ultimoErroDoModo = "sem requestFullscreen";
-                }
-            } else {
-                sairDaTelaCheiaDoNavegador();
-            }
+            raiz.classList.toggle("tela-x15", modo === 2);
+            raiz.classList.toggle("tela-x2", modo === 3);
+            raiz.classList.toggle("tela-x3", modo === 4);
+            sairDaTelaCheiaDoNavegador();
         }
         let ultimoErroDoModo = "";
         document.addEventListener(

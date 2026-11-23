@@ -1,5 +1,5 @@
 {
-  "action": "link:http://tv.tropicalplaytv.com/?v=1.1.8",
+  "action": "link:http://tv.tropicalplaytv.com/?v=1.1.9",
   "restore": false,
   "style": "flat",
   "menu": [
@@ -8,7 +8,7 @@
       "label": "Tropical Play",
       "data": {
         "type": "pages",
-        "pages": [{ "items": [{ "type": "default", "layout": "0,0,12,6", "title": "Tropical Play", "action": "link:http://tv.tropicalplaytv.com/?v=1.1.8" }] }]
+        "pages": [{ "items": [{ "type": "default", "layout": "0,0,12,6", "title": "Tropical Play", "action": "link:http://tv.tropicalplaytv.com/?v=1.1.9" }] }]
       }
     }
   ]
