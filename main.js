@@ -1,9 +1,10 @@
 (function () {
     // Versao do app web (o MSX abre este app em tv.tropicalplaytv.com). Segue a numeracao
-    // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega -
+    // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega;
+    // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.1.10";
+    const APP_VERSION = "1.2.0";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -1051,7 +1052,7 @@
         // pretos. A previa pequena aparece. Rodada 1.1.9: o video fica pequeno no layout e
         // e ampliado por transform ate a tela inteira.
         //
-        // Rodada 1.1.10: as rodadas anteriores trocavam o modo COM o video tocando, e a
+        // Rodada 1.2.0: as rodadas anteriores trocavam o modo COM o video tocando, e a
         // Samsung fixa onde desenha o video quando ele comeca (visto na 1.1.4) - o teste
         // nao valia. Agora cada troca reinicia o video ja no arranjo novo.
         //   1 = como esta
