@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.2.7";
+    const APP_VERSION = "1.2.8";
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -4731,7 +4731,10 @@
     }
 
     function previaGiganteNaSamsung(playerState) {
+        // Desligada na 1.2.8: a copia por canvas ficou preta (o video da TV nao entrega
+        // quadros a pagina). A tela cheia na Samsung agora e o <video> nativo com .m3u8.
         if (
+            true ||
             previaPodeIrParaTelaCheia() ||
             playerState.mediaKind === "image" ||
             !isLiveLikeCatalogType(playerState.type) ||
@@ -4940,7 +4943,7 @@
             return;
         }
 
-        if (window.Hls && Hls.isSupported() && /\.m3u8($|\?)/.test(url) && !videoElement.canPlayType("application/vnd.apple.mpegurl")) {
+        if (!videoNativoDaTv() && window.Hls && Hls.isSupported() && /\.m3u8($|\?)/.test(url) && !videoElement.canPlayType("application/vnd.apple.mpegurl")) {
             const instance = new Hls({
                 enableWorker: true,
                 lowLatencyMode: true,
@@ -5177,8 +5180,16 @@
     // Canal ao vivo do Xtream (/live/usuario/senha/id.m3u8 ou .ts) vira .ts para o
     // mpegts.js, quando o aparelho tem MediaSource para ao vivo. Na Samsung empacotada
     // (AVPlay) nao entra: la o player da TV ja e o melhor caminho.
+    // Samsung (Tizen) dentro do MSX: o webapis vem sem AVPlay (painel 1.2.7) e o video
+    // montado pelo navegador (MediaSource: mpegts.js ou hls.js) so aparece pequeno. Ali o
+    // canal vai direto para o <video> como .m3u8, tocado pelo player da propria TV - o
+    // "Player da TV (HLS)" do SmartMSX, que roda em tela cheia nesta TV.
+    function videoNativoDaTv() {
+        return /Tizen/i.test(navigator.userAgent || "") && !nativeAvplay();
+    }
+
     function urlParaMpegts(url) {
-        if (nativeAvplay() || !window.mpegts || typeof mpegts.getFeatureList !== "function") {
+        if (videoNativoDaTv() || nativeAvplay() || !window.mpegts || typeof mpegts.getFeatureList !== "function") {
             return "";
         }
         let recursos = null;
