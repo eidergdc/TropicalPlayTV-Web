@@ -1,20 +1,369 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tropical Play</title>
-<style>
-  html, body { margin: 0; height: 100%; background: #071019; color: #f7f4e8; font-family: sans-serif; }
-  main { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-  h1 { font-size: 48px; margin: 0 0 12px; }
-  p { font-size: 24px; color: #a6b6c7; margin: 0; }
-</style>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Tropical Play</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script src="lib/firebase-app.js"></script>
+    <script src="lib/firebase-firestore.js"></script>
+    <script src="lib/hls.min.js"></script>
+    <script src="lib/mpegts.js"></script>
+    <script src="./main.js" defer></script>
 </head>
 <body>
-<main>
-  <h1>Tropical Play</h1>
-  <p>Novo aplicativo em construção.</p>
-</main>
+    <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">
+        <div class="ambient ambient-a"></div>
+        <div class="ambient ambient-b"></div>
+        <div class="grain"></div>
+
+        <header role="presentation" class="topbar">
+            <div class="brand-lockup brand-lockup-default">
+                <img role="presentation" aria-hidden="true" class="brand-logo" src="assets/icon.png" alt="">
+                <div class="brand-copy">
+                    <div class="brand-title-row">
+                        <h1 role="presentation">Tropical Play</h1>
+                        <span class="brand-context" id="catalogTopbarType"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="brand-lockup brand-lockup-splash">
+                <img role="presentation" aria-hidden="true" class="brand-logo" src="assets/icon_hd.png" alt="">
+                <div class="brand-copy">
+                    <div class="brand-title-row">
+                        <h1 role="presentation">TP Media</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="status-strip" id="statusStrip"></div>
+        </header>
+
+        <main role="presentation" class="screen-stack">
+            <section role="presentation" class="screen screen-visible splash-screen" id="screenSplash">
+                <div class="hero-card">
+                    <div class="hero-copy">
+                        <p class="eyebrow">Nova base nativa para TV</p>
+                        <h2 role="presentation">Entre com seu codigo e navegue com o controle remoto.</h2>
+                        <p class="hero-text">
+                            Inspirado no Roku Native e no TP Media Fire, agora em um app Tizen Web
+                            desenhado para Samsung TV.
+                        </p>
+                    </div>
+                    <div class="hero-art">
+                        <img role="presentation" aria-hidden="true" src="assets/icon_hd.png" alt="">
+                    </div>
+                </div>
+            </section>
+
+            <section role="presentation" class="screen code-screen" id="screenCode">
+                <div class="login-background"></div>
+                <div class="login-vignette"></div>
+                <div class="login-layout">
+                    <div class="login-badge-shell">
+                        <img role="presentation" aria-hidden="true" class="login-badge-image" src="assets/code-screen-badge.png" alt="">
+                    </div>
+
+                    <div class="login-panel">
+                        <div class="login-panel-head">
+                            <h2 role="presentation">Welcome to TP Media</h2>
+                            <p class="panel-subtitle">Use o teclado numerico fixo do controle para inserir seu codigo.</p>
+                            <p class="app-version app-version-login" id="loginAppVersion"></p>
+                            <p class="login-session-notice hidden" id="loginSessionNotice"></p>
+                        </div>
+
+                        <div class="login-code-card">
+                            <div class="login-code-copy">
+                                <p class="login-code-label">Codigo de acesso</p>
+                                <div class="login-code-value" id="codeDisplay"></div>
+                            </div>
+                        </div>
+
+                        <p class="login-help-copy">Navegue com as setas do controle e pressione OK para digitar.</p>
+
+                        <div class="keypad keypad-login" id="codeKeypad"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section role="presentation" class="screen" id="screenServers">
+                <div class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <p class="eyebrow">Perfil</p>
+                            <h2 role="presentation">Escolha um servidor</h2>
+                        </div>
+                        <p class="panel-subtitle" id="serverSubtitle"></p>
+                    </div>
+                    <div class="server-list" id="serverList"></div>
+                </div>
+            </section>
+
+            <section role="presentation" class="screen payment-screen" id="screenPayment">
+                <div class="panel panel-wide payment-panel">
+                    <div class="panel-head payment-head">
+                        <div>
+                            <p class="eyebrow">Pagamento pendente</p>
+                            <h2 role="presentation">Renove seu acesso</h2>
+                        </div>
+                        <p class="panel-subtitle">
+                            Escaneie o QR Code com o celular para abrir a página de pagamento.
+                        </p>
+                    </div>
+                    <div class="payment-layout">
+                        <div class="payment-copy">
+                            <h3 role="presentation">Seu acesso está pausado até a confirmação do pagamento.</h3>
+                            <div class="payment-instant-note">
+                                <strong>Pagando pelo QR Code, a liberação do acesso é instantânea.</strong>
+                                <span>Você também pode falar com o suporte para enviar o comprovante de pagamento.</span>
+                            </div>
+                            <p>
+                                Depois de enviar o comprovante pelo celular, pressione OK em
+                                <strong>Já paguei</strong> para voltar e validar novamente.
+                            </p>
+                            <div class="payment-actions" id="paymentActions"></div>
+                        </div>
+                        <div class="payment-qr-card">
+                            <img role="presentation" aria-hidden="true" id="paymentQrImage" alt="">
+                            <p id="paymentQrCaption"></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section role="presentation" class="screen media-screen" id="screenMedia">
+                <div class="panel panel-wide media-hub-panel">
+                    <div class="media-hub-layout">
+                        <aside role="presentation" class="media-hub-actions-shell">
+                            <p class="media-hub-label">Acoes</p>
+                            <div class="media-hub-actions" id="mediaHubActions"></div>
+                        </aside>
+
+                        <section role="presentation" class="media-hub-gallery-shell">
+                            <div class="media-gallery-head">
+                                <div>
+                                    <p class="media-hub-label">Galeria</p>
+                                    <h3 role="presentation" id="mediaGalleryTitle">Conteudo pronto para abrir</h3>
+                                </div>
+                                <p class="panel-subtitle media-gallery-subtitle" id="mediaGallerySubtitle">
+                                    Adicione uma lista M3U, um video, uma foto ou um acesso Xtream.
+                                </p>
+                            </div>
+                            <div class="media-gallery-list" id="mediaGalleryList"></div>
+                        </section>
+                    </div>
+                </div>
+            </section>
+
+            <section role="presentation" class="screen home-screen" id="screenHome">
+                <img role="presentation" aria-hidden="true" class="home-screen-image" src="assets/intro-h-blur.jpeg" alt="">
+                <div class="home-screen-background"></div>
+                <div class="home-screen-overlay"></div>
+
+                <div class="fire-home-shell">
+                    <header role="presentation" class="fire-home-header">
+                        <div class="fire-home-brand">
+                            <img role="presentation" aria-hidden="true" class="fire-home-logo" src="assets/icon.png" alt="">
+                            <div class="fire-home-copy">
+                                <h2 role="presentation" id="homeTitle">Tropical Play</h2>
+                                <p class="app-version app-version-home" id="homeAppVersion"></p>
+                            </div>
+                        </div>
+
+                        <div class="hero-meta hero-meta-fire" id="heroMeta"></div>
+                    </header>
+
+                    <div class="fire-home-divider"></div>
+
+                    <div class="fire-home-main">
+                        <div class="fire-home-cards" id="homeCards"></div>
+                        <div class="fire-home-actions" id="homeActions"></div>
+                    </div>
+
+                    <div class="fire-home-footer">
+                        Navegar: ESQUERDA/DIREITA | Selecionar: OK | Voltar: BACK
+                    </div>
+                </div>
+            </section>
+
+            <section role="presentation" class="screen settings-screen" id="screenSettings">
+                <div class="panel panel-wide settings-panel">
+                    <div class="panel-head settings-head">
+                        <div>
+                            <p class="eyebrow">Configuracoes</p>
+                            <h2 role="presentation">Tropical Play</h2>
+                        </div>
+                        <p class="panel-subtitle settings-description">
+                            Gerencie a sessao desta TV com seguranca e recarregue o acesso quando precisar.
+                        </p>
+                    </div>
+
+                    <div class="settings-summary" id="settingsSummary"></div>
+                    <div class="settings-list" id="settingsList"></div>
+                </div>
+            </section>
+
+            <section role="presentation" class="screen catalog-screen" id="screenCatalog">
+                <div class="catalog-grid" id="catalogGrid">
+                    <aside role="presentation" class="catalog-sidebar">
+                        <div class="panel-head compact">
+                            <div>
+                                <p class="eyebrow" id="catalogEyebrow"></p>
+                                <h2 role="presentation" id="catalogTitle"></h2>
+                            </div>
+                            <p class="panel-subtitle" id="catalogHint"></p>
+                        </div>
+                        <div class="category-list" id="categoryList"></div>
+                    </aside>
+
+                    <section role="presentation" class="catalog-main">
+                        <div class="item-list" id="itemList"></div>
+                        <div class="detail-card" id="detailCard"></div>
+                    </section>
+                </div>
+            </section>
+        </main>
+
+        <footer role="presentation" class="footer-hint" id="footerHint"></footer>
+
+        <div class="overlay loading-overlay hidden" id="loadingOverlay">
+            <div class="loading-card">
+                <div class="spinner"></div>
+                <p id="loadingText">Carregando...</p>
+            </div>
+        </div>
+
+        <div class="overlay network-overlay hidden" id="networkOverlay" tabindex="-1">
+            <div class="network-dialog">
+                <p class="eyebrow">Sem conexao</p>
+                <h2 role="presentation" id="networkTitle">Verifique sua internet</h2>
+                <p class="panel-subtitle network-message" id="networkMessage">
+                    Nao foi possivel conectar. Verifique a rede da TV e tente novamente.
+                </p>
+                <div class="network-actions">
+                    <div class="network-action-pill is-focused">OK: tentar novamente</div>
+                    <div class="network-action-pill">Return: sair</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="overlay session-overlay hidden" id="sessionOverlay" tabindex="-1">
+            <div class="session-dialog">
+                <p class="eyebrow" id="sessionEyebrow">Acesso em uso</p>
+                <h2 role="presentation" id="sessionTitle">Usar neste dispositivo?</h2>
+                <p class="panel-subtitle session-message" id="sessionMessage">
+                    Este ponto ja esta sendo usado em outro dispositivo.
+                </p>
+                <p class="session-countdown" id="sessionCountdown"></p>
+                <div class="session-actions" id="sessionActions"></div>
+            </div>
+        </div>
+
+        <div class="overlay exit-overlay hidden" id="exitOverlay" tabindex="-1">
+            <div class="exit-dialog">
+                <p class="eyebrow">Sair do app</p>
+                <h2 role="presentation">Deseja fechar o TP Media?</h2>
+                <p class="panel-subtitle exit-message">
+                    Pressione OK em Sim para sair ou escolha Nao para continuar no aplicativo.
+                </p>
+                <div class="exit-actions" id="exitActions"></div>
+            </div>
+        </div>
+
+        <div class="overlay resume-overlay hidden" id="resumeOverlay" tabindex="-1">
+            <div class="resume-dialog">
+                <p class="eyebrow">Retomar filme</p>
+                <h2 role="presentation" id="resumeTitle">Continuar assistindo?</h2>
+                <p class="panel-subtitle resume-subtitle" id="resumeSubtitle"></p>
+                <div class="resume-meta" id="resumeMeta"></div>
+                <div class="resume-actions" id="resumeActions"></div>
+            </div>
+        </div>
+
+        <div class="overlay search-overlay hidden" id="searchOverlay" tabindex="-1">
+            <div class="search-dialog">
+                <p class="eyebrow">Busca de filmes</p>
+                <h2 role="presentation" id="searchTitle">Pesquisar em Todos</h2>
+                <p class="panel-subtitle search-subtitle" id="searchSubtitle">
+                    Use o teclado abaixo para filtrar os filmes pelo nome.
+                </p>
+                <div class="search-query-display" id="searchQueryDisplay"></div>
+                <div class="search-meta" id="searchMeta"></div>
+                <div class="search-keyboard" id="searchKeyboard"></div>
+            </div>
+        </div>
+
+        <div class="overlay media-input-overlay hidden" id="mediaInputOverlay" tabindex="-1">
+            <div class="media-input-dialog">
+                <p class="eyebrow" id="mediaInputEyebrow">Adicionar conteudo</p>
+                <h2 role="presentation" id="mediaInputTitle">Nova entrada</h2>
+                <p class="panel-subtitle media-input-subtitle" id="mediaInputSubtitle">
+                    Preencha os campos abaixo e use o teclado para concluir.
+                </p>
+                <div class="media-input-fields" id="mediaInputFields"></div>
+                <div class="media-input-keyboard" id="mediaInputKeyboard"></div>
+            </div>
+        </div>
+
+        <div class="overlay player-overlay hidden" id="playerOverlay" tabindex="-1">
+            <div class="player-stage" id="playerStage">
+                <object id="playerAvObject" class="player-av-object" type="application/avplayer"></object>
+                <video id="playerVideo" class="player-video" autoplay playsinline preload="auto" tabindex="-1"></video>
+                <img role="presentation" aria-hidden="true" id="playerImage" class="player-image" alt="">
+            </div>
+            <div class="player-hud" id="playerHud">
+                <div class="player-bottombar">
+                    <div class="player-meta-row">
+                        <div>
+                            <p class="eyebrow" id="playerEyebrow">Reproducao</p>
+                            <h2 role="presentation" id="playerTitle">Abrindo video</h2>
+                        </div>
+                        <p class="player-status" id="playerStatus">Carregando...</p>
+                    </div>
+
+                    <div class="player-progress-row" id="playerProgressRow">
+                        <div class="player-progress-track">
+                            <div class="player-progress-fill" id="playerProgressFill"></div>
+                        </div>
+                        <div class="player-progress-meta">
+                            <span class="player-time" id="playerCurrentTime">00:00</span>
+                            <span class="player-time" id="playerDuration">00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="player-controls-row">
+                        <div class="player-control-pill" data-player-action="rewind">
+                            <span class="player-control-key">◀ 10s</span>
+                            <span class="player-control-label">Voltar</span>
+                        </div>
+                        <div class="player-control-pill player-control-pill-primary" data-player-action="toggle">
+                            <span class="player-control-key" id="playerToggleLabel">Pausar</span>
+                            <span class="player-control-label">Enter</span>
+                        </div>
+                        <div class="player-control-pill" data-player-action="forward">
+                            <span class="player-control-key">10s ▶</span>
+                            <span class="player-control-label">Adiantar</span>
+                        </div>
+                        <div class="player-control-pill" data-player-action="close">
+                            <span class="player-control-key">Return</span>
+                            <span class="player-control-label">Fechar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="player-recovery hidden" id="playerRecovery">
+                <div class="player-recovery-card">
+                    <p class="eyebrow">Sinal instavel</p>
+                    <h2 role="presentation">O canal parou de responder.</h2>
+                    <p class="player-recovery-copy" id="playerRecoveryMessage">
+                        Tentamos reconectar automaticamente. Se continuar travando, escolha outro canal ou troque de servidor.
+                    </p>
+                    <div class="player-recovery-actions" id="playerRecoveryActions"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="toast hidden" id="toast"></div>
+    </div>
 </body>
 </html>
