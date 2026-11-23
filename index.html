@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.2.6">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.2.7">
     <style>
     /* Escala do app (ver o script abaixo): o corpo tem sempre 1920x1080 e encolhe ou
        cresce por transform. vw/vh do style.css viram --vw/--vh, 1% desse 1920x1080. */
@@ -59,9 +59,11 @@
     // liso nesta TV, abre o app por https na Samsung e toca pelo AVPlay. O painel
     // Xtream continua em http: dentro do app do MSX na Samsung isso nao e bloqueado
     // (o SmartMSX faz o mesmo). Android e Fire TV seguem em http.
-    if (/Tizen/i.test(navigator.userAgent || "") && location.protocol === "http:") {
-        location.replace("https://" + location.host + location.pathname + location.search + location.hash);
-    }
+    //
+    // DESLIGADO na 1.2.7: por https a Samsung barrou os pedidos ao painel Xtream em http,
+    // tanto por fetch quanto por XMLHttpRequest ("Failed to fetch", nenhum servidor
+    // conectava), e o AVPlay continuou ausente (painel 1.2.5: https, avplay: nao).
+    // Mantido aqui como registro do que foi tentado.
     </script>
     <script>
     // Samsung (Tizen) dentro do MSX: a biblioteca do player nativo da TV (AVPlay). O
@@ -84,7 +86,7 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.2.6" defer></script>
+    <script src="./main.js?v=1.2.7" defer></script>
 </head>
 <body>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">
