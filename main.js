@@ -4,7 +4,32 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.4.3";
+    const APP_VERSION = "1.4.4";
+
+    // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
+    // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
+    // filmes e series ficavam em branco (1.4.3).
+    function completarTexto(texto, tamanho, enchimento, noInicio) {
+        texto = String(texto);
+        tamanho = tamanho >> 0;
+        enchimento = enchimento === undefined ? " " : String(enchimento);
+        if (texto.length >= tamanho || !enchimento) return texto;
+        const falta = tamanho - texto.length;
+        let extra = "";
+        while (extra.length < falta) extra += enchimento;
+        extra = extra.slice(0, falta);
+        return noInicio ? extra + texto : texto + extra;
+    }
+    if (!String.prototype.padStart) {
+        String.prototype.padStart = function (tamanho, enchimento) {
+            return completarTexto(this, tamanho, enchimento, true);
+        };
+    }
+    if (!String.prototype.padEnd) {
+        String.prototype.padEnd = function (tamanho, enchimento) {
+            return completarTexto(this, tamanho, enchimento, false);
+        };
+    }
 
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyCRoGZQZD7k-18-BmLq7X4QMGJ5ODJwemc",
@@ -6770,11 +6795,15 @@
     function etapaDaAbertura(texto, pct, fechar) {
         const abertura = window.TPAbertura;
         if (!abertura) return;
-        if (fechar) {
-            abertura.fechar();
-            return;
+        try {
+            if (fechar) {
+                abertura.fechar();
+                return;
+            }
+            abertura.etapa(texto, pct);
+        } catch (error) {
+            // A abertura nunca pode impedir o app de seguir.
         }
-        abertura.etapa(texto, pct);
     }
 
     // Capas para a parede da abertura: as ultimas vistas nesta TV (filmes e series).
@@ -6857,8 +6886,12 @@
             dom.homeAppVersion.textContent = label;
         }
 
-        if (window.TPAbertura) {
-            window.TPAbertura.versao(APP_VERSION);
+        if (window.TPAbertura && window.TPAbertura.aberta()) {
+            try {
+                window.TPAbertura.versao(APP_VERSION);
+            } catch (error) {
+                // A abertura nunca pode impedir o desenho do app.
+            }
         }
     }
 

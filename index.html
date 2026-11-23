@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.4.3">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.4.4">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -14,7 +14,7 @@
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.4.3">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.4.4">');
     })();
     </script>
     <style>
@@ -110,10 +110,10 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.4.3" defer></script>
+    <script src="./main.js?v=1.4.4" defer></script>
 </head>
 <body>
-    <!-- Abertura do app (1.4.3): cobre o carregamento ate a tela inicial. Fica fora do
+    <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
          .app-shell e aparece antes do main.js rodar. Ao fundo, uma parede de capas
          (as ultimas vistas nesta TV, guardadas pelo main.js) desliza inclinada; no
          centro o logo entra, o nome surge, a linha dourada se desenha e a barra mostra
@@ -169,8 +169,14 @@
         definir("Abrindo...", 8);
 
         window.TPAbertura = {
-            etapa: definir,
-            versao: function (v) { document.getElementById("aberturaVersao").textContent = "Versao " + v; },
+            etapa: function (texto, pct) { if (!fechada) definir(texto, pct); },
+            // 1.4.4: depois que a abertura sai da pagina o elemento nao existe mais. Sem
+            // esta checagem o erro interrompia o desenho do app (o main.js chama isto a
+            // cada tela) e as listas do catalogo ficavam em branco.
+            versao: function (v) {
+                var alvo = document.getElementById("aberturaVersao");
+                if (alvo) alvo.textContent = "Versao " + v;
+            },
             aberta: function () { return !fechada; },
             fechar: function () {
                 if (fechada || demo) return;
