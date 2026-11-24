@@ -3790,32 +3790,118 @@ html .catalog-screen[data-variant] .media-card.is-focused .media-title {
     color: #ffffff;
 }
 
-/* Abertura do app (1.4.5) - ver index.html (#abertura). Imagem parada: sem animacao,
-   sem filtro nem desfoque, para nao pesar nas TVs mais fracas (travava em algumas LG). */
+/* Abertura do app (1.4.2) - ver index.html (#abertura). So transform, opacity e
+   filter: roda tambem nas TVs antigas (Chromium 56), sem grid, gap nem inset. */
 .abertura {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     z-index: 2147483000; overflow: hidden;
-    background: #05090f url("../assets/intro-h.jpeg") center center / cover no-repeat;
+    background: #05090f;
+    transition: opacity 700ms ease, transform 700ms ease;
 }
-.abertura::before {
-    content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(5, 9, 15, 0.8);
+.abertura.abertura-saindo { opacity: 0; transform: scale(1.06); pointer-events: none; }
+.abertura-fundo {
+    position: absolute; top: -40px; left: -40px; right: -40px; bottom: -40px;
+    background: url("../assets/intro-h.jpeg") center center / cover no-repeat;
+    opacity: 0.22; filter: blur(3px);
+    animation: aberturaZoom 14s ease-out both;
+}
+.abertura-parede {
+    position: absolute; left: -420px; top: -260px; width: 2760px; height: 1600px;
+    transform: rotate(-9deg);
+    opacity: 0; filter: blur(1.5px) saturate(1.15);
+    animation: aberturaAparece 1600ms ease-out 200ms forwards;
+}
+.abertura-faixa {
+    height: 470px; margin-bottom: 34px; white-space: nowrap; font-size: 0;
+    animation: aberturaDesliza 46s linear infinite;
+}
+.abertura-faixa-1 { animation-name: aberturaDeslizaVolta; animation-duration: 54s; margin-left: -160px; }
+.abertura-faixa-2 { animation-duration: 62s; margin-left: -300px; }
+.abertura-capa {
+    display: inline-block; width: 310px; height: 470px; margin-right: 34px;
+    border-radius: 22px; background-color: #121a26;
+    background-size: cover; background-position: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+.abertura-sombra {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        radial-gradient(ellipse 900px 560px at 50% 50%, rgba(5, 9, 15, 0.55), rgba(5, 9, 15, 0.94) 72%),
+        linear-gradient(180deg, rgba(5, 9, 15, 0.7), transparent 30%, transparent 70%, rgba(5, 9, 15, 0.85));
+}
+.abertura-brilho {
+    position: absolute; left: 50%; top: 50%; width: 1100px; height: 1100px;
+    margin: -600px 0 0 -550px;
+    background: radial-gradient(circle, rgba(255, 140, 40, 0.34), rgba(255, 120, 30, 0.1) 38%, transparent 66%);
+    opacity: 0;
+    animation: aberturaAparece 1200ms ease-out 300ms forwards, aberturaPulsa 3600ms ease-in-out 1500ms infinite;
 }
 .abertura-centro {
     position: absolute; left: 0; right: 0; top: 50%;
-    margin-top: -230px;
+    transform: translateY(-50%); margin-top: -40px;
     text-align: center; color: #fff;
 }
-.abertura-logo { width: 250px; height: 250px; display: block; margin: 0 auto; }
+.abertura-logo {
+    width: 250px; height: 250px; display: block; margin: 0 auto;
+    filter: drop-shadow(0 18px 40px rgba(255, 120, 20, 0.45));
+    opacity: 0;
+    animation: aberturaLogo 1200ms cubic-bezier(0.2, 0.8, 0.2, 1) 250ms forwards;
+}
+/* 1.4.3: a flutuacao travava na TV. Ela ia no proprio logo, que tem sombra (filter): a
+   TV redesenhava logo e sombra a cada quadro e arredondava o movimento para pixels
+   inteiros. Agora flutua uma caixa em volta, numa camada propria da placa de video
+   (translate3d + will-change): o logo e desenhado uma vez e so a camada se move. */
+.abertura-boia {
+    width: 250px; margin: 0 auto;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    animation: aberturaFlutua 4s ease-in-out 1600ms infinite;
+}
 .abertura-nome {
     margin-top: 26px; font-size: 68px; font-weight: 800; line-height: 1;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.06em; text-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    animation: aberturaNome 1000ms ease-out 800ms forwards;
 }
-.abertura-etapa { margin-top: 40px; font-size: 26px; color: rgba(255, 255, 255, 0.76); }
+.abertura-linha {
+    width: 0; height: 3px; margin: 26px auto 0; border-radius: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255, 209, 102, 0.98), transparent);
+    animation: aberturaLinha 900ms ease-out 1300ms forwards;
+}
+.abertura-barra {
+    width: 520px; height: 6px; margin: 58px auto 0; border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1); overflow: hidden;
+    opacity: 0; animation: aberturaAparece 600ms ease-out 1500ms forwards;
+}
+.abertura-barra-cheia {
+    width: 4%; height: 100%; border-radius: 6px;
+    background: linear-gradient(90deg, #ff8c1a, #ffd166);
+    box-shadow: 0 0 14px rgba(255, 170, 60, 0.8);
+    transition: width 700ms ease;
+}
+.abertura-etapa {
+    margin-top: 18px; font-size: 24px; color: rgba(255, 255, 255, 0.76);
+    opacity: 0; animation: aberturaAparece 600ms ease-out 1600ms forwards;
+}
 .abertura-versao {
     position: absolute; left: 0; right: 0; bottom: 46px; text-align: center;
     font-size: 18px; letter-spacing: 0.14em; text-transform: uppercase;
     color: rgba(255, 255, 255, 0.42);
 }
+@keyframes aberturaAparece { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aberturaZoom { from { transform: scale(1.02); } to { transform: scale(1.16); } }
+@keyframes aberturaDesliza { from { transform: translateX(0); } to { transform: translateX(-2752px); } }
+@keyframes aberturaDeslizaVolta { from { transform: translateX(-2752px); } to { transform: translateX(0); } }
+@keyframes aberturaPulsa { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.08); } }
+@keyframes aberturaLogo {
+    0% { opacity: 0; transform: scale(0.55) rotate(-12deg); filter: blur(14px) drop-shadow(0 18px 40px rgba(255, 120, 20, 0)); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0) drop-shadow(0 18px 40px rgba(255, 120, 20, 0.45)); }
+}
+@keyframes aberturaFlutua { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -12px, 0); } }
+@keyframes aberturaNome {
+    from { opacity: 0; letter-spacing: 0.5em; transform: translateY(16px); }
+    to { opacity: 1; letter-spacing: 0.06em; transform: translateY(0); }
+}
+@keyframes aberturaLinha { from { width: 0; } to { width: 460px; } }
 /* Durante a abertura o botao "Voltar" do mouse/toque nao aparece por cima dela. */
 .abertura ~ #botaoVoltarNaTela { display: none !important; }
