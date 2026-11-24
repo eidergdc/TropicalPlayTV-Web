@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.5.0";
+    const APP_VERSION = "1.5.1";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -1789,6 +1789,28 @@
         } catch (error) {
             console.log("History back failed:", error);
         }
+
+        // 1.5.1: no iPad/iPhone (e no navegador comum) nao ha para onde voltar e nada
+        // acontecia: o aviso "Sair do app" ficava na tela e parecia travado. Se a pagina
+        // continua visivel, desfaz a saida e explica como fechar.
+        setTimeout(function () {
+            if (document.hidden || !saindoPeloHistorico) {
+                return;
+            }
+            saindoPeloHistorico = false;
+            try {
+                // O voltar foi so ate a primeira entrada desta mesma pagina: prende de novo.
+                window.history.pushState({ tropicalPlay: true }, "", window.location.href);
+            } catch (error) {}
+            appHidden = false;
+            syncScreenSaverState();
+            closeExitPrompt();
+            const codigo = state.code || localStorage.getItem(STORAGE_KEYS.userCode) || "";
+            if (codigo && state.profile) {
+                startSessionHeartbeat(codigo);
+            }
+            showToast("Para sair, use o botao de inicio do aparelho ou feche esta aba.", "success");
+        }, 1200);
     }
 
     function shouldUseFavoriteHold() {

@@ -3768,6 +3768,10 @@ html.com-ponteiro [data-foco-grupo] { cursor: pointer; }
 }
 html.com-ponteiro #botaoVoltarNaTela { display: block; }
 #botaoVoltarNaTela:hover { border-color: #ff9051; }
+/* 1.5.1: com o botao na tela (mouse ou toque), o cabecalho anda para a direita e o
+   botao nao cobre mais o logo e o nome "Tropical Play". */
+html.com-ponteiro .app-shell:not([data-player-open="true"]) .topbar,
+html.com-ponteiro .fire-home-brand { padding-left: 190px; }
 html.com-ponteiro .detail-preview-shell,
 html.com-ponteiro.previa-no-corpo #playerVideo { cursor: pointer; }
 
