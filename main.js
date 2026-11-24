@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.4.9";
+    const APP_VERSION = "1.5.0";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -1172,6 +1172,34 @@
                 activateCatalogItem(canal);
                 return;
             }
+        }
+        // 1.5.0: botoes dos avisos (codigo em outro aparelho, sair do app, canal travado)
+        // nao tinham etiqueta de mouse/toque: no iPad o toque nao fazia nada e o aviso de
+        // "codigo em outro dispositivo" prendia o cliente. O toque escolhe o botao e da OK.
+        const botaoDeAviso = event.target && event.target.closest
+            ? event.target.closest(".session-action, .exit-action, .player-recovery-action")
+            : null;
+        if (botaoDeAviso && botaoDeAviso.parentNode) {
+            event.preventDefault();
+            const posicao = Array.prototype.indexOf.call(botaoDeAviso.parentNode.children, botaoDeAviso);
+            if (botaoDeAviso.classList.contains("session-action")) {
+                state.sessionConflict.optionIndex = posicao;
+                renderSessionConflictOverlay();
+            } else if (botaoDeAviso.classList.contains("exit-action")) {
+                state.exitPrompt.optionIndex = posicao;
+                renderExitPromptOverlay();
+            } else {
+                state.player.recoveryActionIndex = posicao;
+                renderPlayerRecovery();
+            }
+            teclaSintetica("Enter");
+            return;
+        }
+        // Aviso de "sem internet": tocar no aviso e o mesmo que OK (tentar de novo).
+        if (state.network.offline && event.target && event.target.closest && event.target.closest(".network-dialog")) {
+            event.preventDefault();
+            teclaSintetica("Enter");
+            return;
         }
         const no = event.target && event.target.closest ? event.target.closest("[data-foco-grupo]") : null;
         if (!no) {
