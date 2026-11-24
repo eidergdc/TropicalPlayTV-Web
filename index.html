@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.4">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.5">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -14,7 +14,7 @@
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.4">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.5">');
     })();
     </script>
     <style>
@@ -110,7 +110,7 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.5.4" defer></script>
+    <script src="./main.js?v=1.5.5" defer></script>
 </head>
 <body>
     <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
@@ -253,7 +253,7 @@
 
                     <div class="login-panel">
                         <div class="login-panel-head">
-                            <h2 role="presentation">Welcome to TP Media</h2>
+                            <h2 role="presentation">Bem-vindo ao TP Media</h2>
                             <p class="panel-subtitle">Use o teclado numerico fixo do controle para inserir seu codigo.</p>
                             <p class="app-version app-version-login" id="loginAppVersion"></p>
                             <p class="login-session-notice hidden" id="loginSessionNotice"></p>
@@ -461,6 +461,18 @@
                     Pressione OK em Sim para sair ou escolha Nao para continuar no aplicativo.
                 </p>
                 <div class="exit-actions" id="exitActions"></div>
+            </div>
+        </div>
+
+        <div class="overlay exit-overlay renovacao-overlay hidden" id="renovacaoOverlay" tabindex="-1">
+            <div class="exit-dialog renovacao-dialog">
+                <div class="renovacao-texto">
+                    <p class="eyebrow">Tropical Play</p>
+                    <h2 role="presentation" id="renovacaoTitulo">Renovar acesso</h2>
+                    <p class="panel-subtitle exit-message" id="renovacaoTexto"></p>
+                    <div class="exit-actions renovacao-acoes"><button aria-hidden="true" role="presentation" tabindex="-1" type="button" class="exit-action is-focused">Fechar</button></div>
+                </div>
+                <img class="renovacao-qr" id="renovacaoQr" alt="">
             </div>
         </div>
 

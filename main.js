@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.5.4";
+    const APP_VERSION = "1.5.5";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -225,10 +225,22 @@
             badge: "UPD",
         },
         {
+            id: "renovar",
+            title: "Renovar acesso",
+            subtitle: "Mostra o QR Code para renovar seu plano pelo celular.",
+            badge: "PAG",
+        },
+        {
             id: "parental",
             title: "Controle parental",
             subtitle: "Senha para abrir canais, filmes e series adultos (+18). Senha padrao: 0000. OK para trocar.",
             badge: "+18",
+        },
+        {
+            id: "limpar",
+            title: "Limpar assistidos",
+            subtitle: "Apaga a lista de filmes e series assistidos recentemente.",
+            badge: "DEL",
         },
         {
             id: "logout",
@@ -699,6 +711,12 @@
     // a reproducao para (senao o audio segue por cima do que o usuario abriu) e ao voltar
     // o app revalida rede e sessao antes de retomar.
     function registerVisibilityHandling() {
+        window.addEventListener("pagehide", enviarDadosAoSair);
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+                enviarDadosAoSair();
+            }
+        });
         document.addEventListener("visibilitychange", function () {
             if (isDocumentHidden()) {
                 handleAppHidden();
@@ -907,6 +925,10 @@
         dom.sessionActions = document.getElementById("sessionActions");
         dom.exitOverlay = document.getElementById("exitOverlay");
         dom.senhaOverlay = document.getElementById("senhaParentalOverlay");
+        dom.renovacaoOverlay = document.getElementById("renovacaoOverlay");
+        dom.renovacaoTitulo = document.getElementById("renovacaoTitulo");
+        dom.renovacaoTexto = document.getElementById("renovacaoTexto");
+        dom.renovacaoQr = document.getElementById("renovacaoQr");
         dom.senhaTitulo = document.getElementById("senhaParentalTitulo");
         dom.senhaTexto = document.getElementById("senhaParentalTexto");
         dom.senhaPontos = document.getElementById("senhaParentalPontos");
@@ -1228,6 +1250,12 @@
         // 1.5.0: botoes dos avisos (codigo em outro aparelho, sair do app, canal travado)
         // nao tinham etiqueta de mouse/toque: no iPad o toque nao fazia nada e o aviso de
         // "codigo em outro dispositivo" prendia o cliente. O toque escolhe o botao e da OK.
+        // Quadro de renovacao: tocar em qualquer lugar fecha (o QR e so para o celular ler).
+        if (state.renovacaoAberta) {
+            event.preventDefault();
+            fecharRenovacao();
+            return;
+        }
         // Teclado da senha do controle parental (1.5.3).
         const teclaDaSenha = event.target && event.target.closest ? event.target.closest(".senha-tecla") : null;
         if (teclaDaSenha && state.senhaParental.open) {
@@ -1608,6 +1636,18 @@
     }
 
     function onKeyDown(event) {
+        if (state.renovacaoAberta) {
+            const renovacaoAction = normalizeKey(event);
+            if (!renovacaoAction) {
+                return;
+            }
+            consumeKeyEvent(event);
+            if (renovacaoAction.type === "enter" || renovacaoAction.type === "back" || renovacaoAction.type === "stop") {
+                fecharRenovacao();
+            }
+            return;
+        }
+
         if (state.senhaParental.open) {
             const senhaAction = normalizeKey(event);
             if (!senhaAction) {
@@ -2988,6 +3028,7 @@
     function appendDigit(digit) {
         if (state.code.length >= CODIGO_MAXIMO) {
             showToast("O codigo tem no maximo " + CODIGO_MAXIMO + " digitos.", "error");
+            renderCodeScreen();
             return;
         }
         state.code += digit;
@@ -3404,6 +3445,8 @@
             activeSessionId: normalizeSessionValue(data.activeSessionId),
             activeDeviceId: normalizeSessionValue(data.activeDeviceId),
             activePlatform: normalizeSessionValue(data.activePlatform),
+            // Senha do controle parental: a mesma do app MSX (devices.msxParental.pin).
+            parentalPin: data.msxParental && /^[0-9]{4}$/.test(String(data.msxParental.pin || "")) ? String(data.msxParental.pin) : "",
             allowConcurrentDevices: Boolean(data.allowConcurrentDevices),
             lists: lists.map(function (item, index) {
                 return {
@@ -6976,6 +7019,8 @@
         }
     }
 
+    let confirmacaoDeLimpeza = 0;
+
     async function runSettingsAction(actionId) {
         if (actionId === "refresh") {
             await refreshSelectedServerData({
@@ -6987,6 +7032,23 @@
 
         if (actionId === "parental") {
             abrirSenhaParental("atual", null);
+            return;
+        }
+
+        if (actionId === "renovar") {
+            abrirRenovacao(false);
+            return;
+        }
+
+        if (actionId === "limpar") {
+            // Pede OK duas vezes: um toque sem querer nao apaga a lista.
+            if (!confirmacaoDeLimpeza || Date.now() - confirmacaoDeLimpeza > 5000) {
+                confirmacaoDeLimpeza = Date.now();
+                showToast("Pressione OK de novo para apagar a lista de assistidos.", "success");
+                return;
+            }
+            confirmacaoDeLimpeza = 0;
+            limparAssistidos();
             return;
         }
 
@@ -7079,6 +7141,10 @@
         state.screen = screen;
         localStorage.setItem(STORAGE_KEYS.lastScreen, screen);
         render();
+        if (screen === "home") {
+            sincronizarDadosAoEntrar();
+            avisarVencimentoSePerto();
+        }
         if (screen !== "splash") {
             etapaDaAbertura(null, -1, true);
         }
@@ -7430,6 +7496,7 @@
 
     function saveFavorites() {
         localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(state.favorites));
+        marcarDadosAlterados(3000);
     }
 
     function restorePlaybackHistory() {
@@ -7483,6 +7550,7 @@
 
     function savePlaybackHistory() {
         localStorage.setItem(STORAGE_KEYS.playbackHistory, JSON.stringify(state.playbackHistory.slice(0, PLAYBACK_HISTORY_LIMIT)));
+        marcarDadosAlterados(30000);
     }
 
     function cancelFavoriteHold() {
@@ -11322,6 +11390,302 @@
         return type === "series" ? isAllSeriesCategoryId(categoryId) : isAllMoviesCategoryId(categoryId);
     }
 
+    // ---- Favoritos e assistidos no Firebase (1.5.5) ------------------------------------
+    // O aparelho continua com a copia dele (abre na hora, sem esperar a rede). Uma copia
+    // vai para o Firebase pela rota /msx/webdata do projeto MSX, um documento por codigo:
+    // trocar de TV, limpar o navegador ou reinstalar nao perde mais nada.
+    //
+    // Quem alterou por ultimo vale (marca "em", em milissegundos). A trava de um aparelho
+    // por codigo ja impede dois aparelhos mexendo ao mesmo tempo.
+    const DADOS_NO_BANCO = "https://tropicalplaymsx.web.app/msx/webdata";
+    const CHAVE_DADOS_EDITADOS_EM = "tropical.dadosEditadosEm";
+    const CHAVE_DADOS_DO_CODIGO = "tropical.dadosDoCodigo";
+    const CAMPOS_LONGOS = ["plot", "description", "cast", "actors", "director", "backdrop_path", "youtube_trailer", "info"];
+    const sincronia = { codigo: "", carregando: false, timer: null, prazo: 0, pendente: false };
+
+    function codigoDaSincronia() {
+        return String((state.profile && state.profile.userNumber) || state.code || "").trim();
+    }
+
+    function lerNumeroLocal(chave) {
+        try {
+            return Number(localStorage.getItem(chave)) || 0;
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    function compactarItem(item) {
+        if (!item || typeof item !== "object") {
+            return item;
+        }
+        const copia = {};
+        Object.keys(item).forEach(function (chave) {
+            if (CAMPOS_LONGOS.indexOf(chave) === -1) {
+                copia[chave] = item[chave];
+            }
+        });
+        return copia;
+    }
+
+    function pacoteDosDados(codigo) {
+        const favoritos = (state.favorites || []).map(function (entrada) {
+            const copia = Object.assign({}, entrada);
+            copia.item = compactarItem(entrada.item);
+            return copia;
+        });
+        const historico = (state.playbackHistory || []).slice(0, PLAYBACK_HISTORY_LIMIT).map(function (entrada) {
+            const copia = Object.assign({}, entrada);
+            copia.item = compactarItem(entrada.item);
+            copia.seriesItem = compactarItem(entrada.seriesItem);
+            return copia;
+        });
+        return JSON.stringify({
+            code: codigo,
+            acao: "salvar",
+            favoritos: JSON.stringify(favoritos),
+            historico: JSON.stringify(historico),
+            em: lerNumeroLocal(CHAVE_DADOS_EDITADOS_EM) || Date.now(),
+        });
+    }
+
+    // Chamado por saveFavorites e savePlaybackHistory.
+    function marcarDadosAlterados(esperaMs) {
+        const codigo = codigoDaSincronia();
+        if (!codigo || codigo === DEMO_CODE) {
+            return;
+        }
+        try {
+            localStorage.setItem(CHAVE_DADOS_EDITADOS_EM, String(Date.now()));
+            localStorage.setItem(CHAVE_DADOS_DO_CODIGO, codigo);
+        } catch (error) {
+            console.log("Local data mark skipped:", error);
+        }
+        sincronia.pendente = true;
+        agendarEnvioDosDados(esperaMs);
+    }
+
+    function agendarEnvioDosDados(esperaMs) {
+        const prazo = Date.now() + esperaMs;
+        if (sincronia.timer && sincronia.prazo <= prazo) {
+            return;
+        }
+        if (sincronia.timer) {
+            clearTimeout(sincronia.timer);
+        }
+        sincronia.prazo = prazo;
+        sincronia.timer = setTimeout(enviarDadosAoBanco, esperaMs);
+    }
+
+    async function enviarDadosAoBanco() {
+        sincronia.timer = null;
+        const codigo = codigoDaSincronia();
+        if (!sincronia.pendente || !codigo || codigo === DEMO_CODE || sincronia.carregando) {
+            return;
+        }
+        try {
+            const resposta = await fetch(DADOS_NO_BANCO, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=UTF-8" },
+                body: pacoteDosDados(codigo),
+            });
+            if (resposta.ok) {
+                sincronia.pendente = false;
+                return;
+            }
+            console.log("Data sync refused:", resposta.status);
+        } catch (error) {
+            console.log("Data sync failed, retrying later:", error);
+        }
+        agendarEnvioDosDados(60000);
+    }
+
+    // Ao fechar ou esconder o app, o que estiver pendente sai pelo sendBeacon, que o
+    // navegador entrega mesmo com a pagina indo embora.
+    function enviarDadosAoSair() {
+        const codigo = codigoDaSincronia();
+        if (!sincronia.pendente || !codigo || codigo === DEMO_CODE || !navigator.sendBeacon) {
+            return;
+        }
+        try {
+            const enviado = navigator.sendBeacon(
+                DADOS_NO_BANCO,
+                new Blob([pacoteDosDados(codigo)], { type: "text/plain;charset=UTF-8" })
+            );
+            if (enviado) {
+                sincronia.pendente = false;
+            }
+        } catch (error) {
+            console.log("Data beacon skipped:", error);
+        }
+    }
+
+    // Ao entrar no inicio com um codigo: traz a copia do banco se ela for mais nova, ou
+    // manda a do aparelho se a do aparelho for a mais nova (inclusive a primeira vez,
+    // quando o banco ainda esta vazio).
+    async function sincronizarDadosAoEntrar() {
+        const codigo = codigoDaSincronia();
+        if (!codigo || codigo === DEMO_CODE || sincronia.codigo === codigo || sincronia.carregando) {
+            return;
+        }
+        sincronia.carregando = true;
+        try {
+            const resposta = await fetch(DADOS_NO_BANCO + "?code=" + encodeURIComponent(codigo), { method: "GET" });
+            const remoto = resposta.ok ? await resposta.json() : null;
+            if (!remoto || !remoto.ok || codigoDaSincronia() !== codigo) {
+                return;
+            }
+            sincronia.codigo = codigo;
+            let donoLocal = "";
+            try {
+                donoLocal = localStorage.getItem(CHAVE_DADOS_DO_CODIGO) || "";
+            } catch (error) {
+                donoLocal = "";
+            }
+            // Dados do aparelho de antes desta versao (sem dono) contam como deste codigo.
+            const localEDesteCodigo = !donoLocal || donoLocal === codigo;
+            const editadoLocal = localEDesteCodigo ? lerNumeroLocal(CHAVE_DADOS_EDITADOS_EM) : 0;
+            const temLocal = (state.favorites || []).length || (state.playbackHistory || []).length;
+
+            const remotoVazio = !/[^\[\]\s]/.test(String(remoto.favoritos || "")) && !/[^\[\]\s]/.test(String(remoto.historico || ""));
+            // Banco vazio nunca apaga o que o aparelho tem: so recebe a copia dele.
+            if (remotoVazio && temLocal && localEDesteCodigo) {
+                try {
+                    localStorage.setItem(CHAVE_DADOS_EDITADOS_EM, String(Date.now()));
+                    localStorage.setItem(CHAVE_DADOS_DO_CODIGO, codigo);
+                } catch (error) {
+                    console.log("Local data mark skipped:", error);
+                }
+                sincronia.pendente = true;
+                agendarEnvioDosDados(1500);
+                return;
+            }
+            if (remoto.em > editadoLocal || !localEDesteCodigo) {
+                aplicarDadosDoBanco(remoto, codigo);
+                return;
+            }
+            if (temLocal && editadoLocal >= remoto.em) {
+                if (!editadoLocal) {
+                    try {
+                        localStorage.setItem(CHAVE_DADOS_EDITADOS_EM, String(Date.now()));
+                    } catch (error) {
+                        console.log("Local data mark skipped:", error);
+                    }
+                }
+                try {
+                    localStorage.setItem(CHAVE_DADOS_DO_CODIGO, codigo);
+                } catch (error) {
+                    console.log("Local data owner skipped:", error);
+                }
+                sincronia.pendente = true;
+                agendarEnvioDosDados(1500);
+            }
+        } catch (error) {
+            console.log("Data load from Firebase skipped:", error);
+        } finally {
+            sincronia.carregando = false;
+        }
+    }
+
+    function aplicarDadosDoBanco(remoto, codigo) {
+        const favoritos = safeJsonParse(remoto.favoritos);
+        const historico = safeJsonParse(remoto.historico);
+        state.favorites = (Array.isArray(favoritos) ? favoritos : []).map(normalizeFavoriteEntry).filter(Boolean);
+        state.playbackHistory = (Array.isArray(historico) ? historico : [])
+            .map(normalizePlaybackHistoryEntry)
+            .filter(Boolean)
+            .sort(function (a, b) {
+                return String(b.updatedAt).localeCompare(String(a.updatedAt));
+            })
+            .slice(0, PLAYBACK_HISTORY_LIMIT);
+        try {
+            localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(state.favorites));
+            localStorage.setItem(STORAGE_KEYS.playbackHistory, JSON.stringify(state.playbackHistory));
+            localStorage.setItem(CHAVE_DADOS_EDITADOS_EM, String(remoto.em || 0));
+            localStorage.setItem(CHAVE_DADOS_DO_CODIGO, codigo);
+        } catch (error) {
+            console.log("Local data copy skipped:", error);
+        }
+        if (state.screen === "home") {
+            renderHomeScreen();
+        } else if (state.screen === "catalog") {
+            renderCatalogScreen();
+        }
+    }
+
+    function limparAssistidos() {
+        state.playbackHistory = [];
+        savePlaybackHistory();
+        agendarEnvioDosDados(1000);
+        showToast("Lista de assistidos apagada.", "success");
+    }
+
+    // ---- Aviso de vencimento e renovacao (1.5.5) --------------------------------------
+    // Como no TP Media da Fire TV: faltando 3 dias ou menos, ao abrir o app aparece o aviso
+    // com o QR Code de renovacao (uma vez por dia). O mesmo quadro abre pelo botao
+    // "Renovar acesso" das configuracoes.
+    function textoDoVencimento(dias) {
+        if (dias === null) return "Renove seu acesso pelo QR Code.";
+        if (dias < 0) return "Seu acesso venceu.";
+        if (dias === 0) return "Seu acesso vence hoje.";
+        if (dias === 1) return "Seu acesso vence amanha.";
+        return "Seu acesso vence em " + dias + " dias.";
+    }
+
+    function abrirRenovacao(automatico) {
+        if (!dom.renovacaoOverlay || !state.profile) {
+            return;
+        }
+        const dias = diasParaVencer(state.profile.expiresAt);
+        const link = paymentUrlForProfile(state.profile);
+        dom.renovacaoTitulo.textContent = automatico ? textoDoVencimento(dias) : "Renovar acesso";
+        dom.renovacaoTexto.textContent =
+            (automatico ? "" : textoDoVencimento(dias) + " ") +
+            "Aponte a camera do celular para o QR Code. Pagando por ele, a liberacao e na hora e seus dias restantes sao mantidos.";
+        if (link) {
+            dom.renovacaoQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data=" + encodeURIComponent(link);
+            dom.renovacaoQr.classList.remove("hidden");
+        } else {
+            dom.renovacaoQr.removeAttribute("src");
+            dom.renovacaoQr.classList.add("hidden");
+            dom.renovacaoTexto.textContent = "Link de renovacao nao encontrado. Fale com o suporte pelo contato das configuracoes.";
+        }
+        state.renovacaoAberta = true;
+        cancelFavoriteHold();
+        dom.renovacaoOverlay.classList.remove("hidden");
+    }
+
+    function fecharRenovacao() {
+        state.renovacaoAberta = false;
+        if (dom.renovacaoOverlay) {
+            dom.renovacaoOverlay.classList.add("hidden");
+        }
+    }
+
+    function avisarVencimentoSePerto() {
+        const profile = state.profile;
+        if (!profile || profile.isDemo || !profile.paymentStatus) {
+            return;
+        }
+        const dias = diasParaVencer(profile.expiresAt);
+        if (dias === null || dias < 0 || dias > 3) {
+            return;
+        }
+        const hoje = new Date();
+        const chave =
+            "tropical.avisoVencimento:" + String(profile.userNumber || "") + ":" +
+            hoje.getFullYear() + "-" + (hoje.getMonth() + 1) + "-" + hoje.getDate();
+        try {
+            if (localStorage.getItem(chave)) {
+                return;
+            }
+            localStorage.setItem(chave, "1");
+        } catch (error) {
+            console.log("Renewal reminder mark skipped:", error);
+        }
+        abrirRenovacao(true);
+    }
+
     // ---- Status dos servidores (1.5.4) -----------------------------------------------
     // Na tela de escolher o servidor cada um mostra se esta online ou, quando nao entra,
     // o motivo provavel: vencido, bloqueado/desativado no painel, telas em uso, possivel
@@ -11519,6 +11883,9 @@
     const idsAdultosCache = {};
 
     function senhaParentalAtual() {
+        if (state.profile && /^[0-9]{4}$/.test(String(state.profile.parentalPin || ""))) {
+            return String(state.profile.parentalPin);
+        }
         try {
             const salva = localStorage.getItem(CHAVE_SENHA_PARENTAL);
             return /^[0-9]{4}$/.test(salva || "") ? salva : SENHA_PARENTAL_PADRAO;
@@ -11782,15 +12149,45 @@
             renderSenhaParental();
             return;
         }
+        const senhaAnterior = senhaParentalAtual();
         try {
             localStorage.setItem(CHAVE_SENHA_PARENTAL, digitado);
         } catch (error) {
             console.log("Parental PIN save skipped:", error);
         }
+        salvarSenhaNoBanco(senhaAnterior, digitado);
         controleParentalLiberado = false;
         limparFiltroAdulto();
         fecharSenhaParental();
         showToast("Senha do controle parental alterada.", "success");
+    }
+
+    // A senha nova vai para o cadastro (a mesma do app MSX): vale em qualquer aparelho.
+    async function salvarSenhaNoBanco(atual, nova) {
+        const codigo = codigoDaSincronia();
+        if (state.profile) {
+            state.profile.parentalPin = nova;
+            try {
+                localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(state.profile));
+            } catch (error) {
+                console.log("Profile save skipped:", error);
+            }
+        }
+        if (!codigo || codigo === DEMO_CODE) {
+            return;
+        }
+        try {
+            const resposta = await fetch(DADOS_NO_BANCO, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=UTF-8" },
+                body: JSON.stringify({ code: codigo, acao: "pin", atual: atual, nova: nova }),
+            });
+            if (!resposta.ok) {
+                console.log("Parental PIN sync refused:", resposta.status);
+            }
+        } catch (error) {
+            console.log("Parental PIN sync failed:", error);
+        }
     }
 
     // ---- Configuracoes: vencimento do plano e suporte (1.5.3) -------------------------
@@ -11850,6 +12247,11 @@
                 return;
             }
             const data = doc.data() || {};
+            const pinDoBanco = data.msxParental && /^[0-9]{4}$/.test(String(data.msxParental.pin || "")) ? String(data.msxParental.pin) : "";
+            if (pinDoBanco && pinDoBanco !== profile.parentalPin) {
+                profile.parentalPin = pinDoBanco;
+                localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(profile));
+            }
             const novaData = normalizeDate(data.expiresAt);
             if (novaData && novaData !== profile.expiresAt) {
                 profile.expiresAt = novaData;

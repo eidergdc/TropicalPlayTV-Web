@@ -3860,6 +3860,30 @@ html .catalog-screen .catalog-lupa.is-focused .catalog-lupa-icone svg {
     stroke: #ffffff;
 }
 
+/* Aviso de vencimento / renovar acesso com QR (1.5.5). */
+html .renovacao-overlay { z-index: 10038; }
+html .renovacao-dialog {
+    display: flex;
+    align-items: center;
+    width: 1100px;
+    text-align: left;
+    border-color: rgba(255, 140, 0, 0.55);
+}
+html .renovacao-texto { flex: 1 1 0; min-width: 0; }
+html .renovacao-texto .exit-message { margin-left: 0; }
+html .renovacao-acoes { display: flex; }
+html .renovacao-acoes .exit-action { flex: 0 0 260px; }
+html .renovacao-qr {
+    flex: 0 0 300px;
+    width: 300px;
+    height: 300px;
+    margin-left: 36px;
+    border-radius: 22px;
+    background: #fff;
+}
+html .settings-card.renovar .settings-badge { color: #8ee0a6; }
+html .settings-card.limpar .settings-badge { color: #ff8a8a; }
+
 /* Status de cada servidor na tela de escolha (1.5.4). */
 html .server-texto {
     width: 100%;
