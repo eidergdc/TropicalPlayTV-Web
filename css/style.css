@@ -4097,7 +4097,6 @@ html .catalog-screen[data-variant] .series-page .is-focused .series-episode-titl
 }
 .abertura-logo {
     width: 250px; height: 250px; display: block; margin: 0 auto;
-    filter: drop-shadow(0 18px 40px rgba(255, 120, 20, 0.45));
     opacity: 0;
     animation: aberturaLogo 1200ms cubic-bezier(0.2, 0.8, 0.2, 1) 250ms forwards;
 }
@@ -4147,9 +4146,12 @@ html .catalog-screen[data-variant] .series-page .is-focused .series-episode-titl
 @keyframes aberturaDesliza { from { transform: translateX(0); } to { transform: translateX(-2752px); } }
 @keyframes aberturaDeslizaVolta { from { transform: translateX(-2752px); } to { transform: translateX(0); } }
 @keyframes aberturaPulsa { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.08); } }
+/* 1.4.9: sem "filter" no logo. No iPhone/iPad (WebKit) o desfoque + sombra no PNG
+   virava um quadrado branco no fim da animacao, quando a abertura some. O brilho
+   laranja atras (.abertura-brilho) ja faz a luz em volta. */
 @keyframes aberturaLogo {
-    0% { opacity: 0; transform: scale(0.55) rotate(-12deg); filter: blur(14px) drop-shadow(0 18px 40px rgba(255, 120, 20, 0)); }
-    100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0) drop-shadow(0 18px 40px rgba(255, 120, 20, 0.45)); }
+    0% { opacity: 0; transform: scale(0.55) rotate(-12deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 @keyframes aberturaFlutua { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -12px, 0); } }
 @keyframes aberturaNome {
