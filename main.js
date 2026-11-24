@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.4.7";
+    const APP_VERSION = "1.4.8";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -1131,6 +1131,11 @@
         resumeActions: function (i) {
             state.resumePrompt.optionIndex = i;
         },
+        proximoEpisodio: function (i) {
+            if (contagemDoProximo) {
+                contagemDoProximo.foco = i;
+            }
+        },
         playerControls: function (i) {
             state.player.controlIndex = i;
             runFocusedPlayerControl();
@@ -1330,6 +1335,7 @@
                     "MediaStop",
                     "MediaRewind",
                     "MediaFastForward",
+                    "MediaTrackNext",
                     "0",
                     "1",
                     "2",
@@ -1813,6 +1819,7 @@
         if (key === "MediaStop") return { type: "stop" };
         if (key === "MediaRewind") return { type: "rewind" };
         if (key === "MediaFastForward") return { type: "fastforward" };
+        if (key === "MediaTrackNext") return { type: "next" };
 
         if (code === 37) return { type: "left" };
         if (code === 38) return { type: "up" };
@@ -1828,6 +1835,8 @@
         if (code === 413) return { type: "stop" };
         if (code === 412) return { type: "rewind" };
         if (code === 417) return { type: "fastforward" };
+        // Botao "proximo" do controle (Samsung 10233, LG 425).
+        if (code === 10233 || code === 425) return { type: "next" };
 
         return null;
     }
@@ -2679,9 +2688,20 @@
             return;
         }
 
+        if (contagemDoProximo) {
+            teclasDaContagemDoProximo(action, event);
+            return;
+        }
+
         if (action.type === "back" || action.type === "stop") {
             event.preventDefault();
             closePlayer();
+            return;
+        }
+
+        if (action.type === "next") {
+            event.preventDefault();
+            irParaProximoEpisodio();
             return;
         }
 
@@ -4101,6 +4121,132 @@
         return null;
     }
 
+    // Proximo episodio (1.4.8). Quando o episodio acaba aparece um aviso com contagem de
+    // 15 segundos: OK abre o proximo na hora, Voltar cancela e fecha o player, e se a
+    // pessoa nao fizer nada o proximo comeca sozinho no fim da contagem.
+    const SEGUNDOS_PARA_O_PROXIMO = 15;
+    let contagemDoProximo = null;
+
+    function proximoEpisodioDoPlayer() {
+        if (state.player.type !== "series" || !state.player.seriesSnapshot || !state.player.itemSnapshot) {
+            return null;
+        }
+        return nextSeriesEpisodeAfter(state.player.seriesSnapshot, state.player.itemSnapshot);
+    }
+
+    function irParaProximoEpisodio() {
+        const serie = state.player.seriesSnapshot;
+        const proximo = (contagemDoProximo && contagemDoProximo.episodio) || proximoEpisodioDoPlayer();
+        if (!serie || !proximo) {
+            showToast("Este e o ultimo episodio disponivel.", "error");
+            return;
+        }
+        fecharContagemDoProximo();
+        persistCurrentPlaybackProgress(true);
+        openSeriesEpisode(serie, proximo, { startFromBeginning: true });
+    }
+
+    function rotuloDoEpisodio(episodio) {
+        const codigo = formatEpisodeLabel(episodio.season_number || episodio.season, episodio.episode_number || episodio.episode_num);
+        const nome = firstNonEmpty(episodio.title, episodio.name, "");
+        return codigo && nome.indexOf(codigo) < 0 ? codigo + "  |  " + nome : nome || codigo || "Proximo episodio";
+    }
+
+    function abrirContagemDoProximo(episodio) {
+        fecharContagemDoProximo();
+        const serie = state.player.seriesSnapshot;
+        const caixa = document.createElement("div");
+        caixa.className = "proximo-episodio";
+        caixa.innerHTML =
+            '<img class="proximo-episodio-capa" alt="" src="' +
+            escapeHtml(firstNonEmpty(episodio.stream_icon, episodio.cover, serie && catalogDetailImage(serie))) +
+            '">' +
+            '<div class="proximo-episodio-texto">' +
+            '<p class="proximo-episodio-titulo">Proximo episodio</p>' +
+            '<p class="proximo-episodio-nome">' +
+            escapeHtml(rotuloDoEpisodio(episodio)) +
+            "</p>" +
+            '<p class="proximo-episodio-tempo">Comeca em <b class="proximo-episodio-segundos">' +
+            SEGUNDOS_PARA_O_PROXIMO +
+            "</b> segundos</p>" +
+            '<div class="proximo-episodio-barra"><div class="proximo-episodio-barra-cheia"></div></div>' +
+            '<div class="proximo-episodio-botoes">' +
+            '<div class="proximo-episodio-botao" data-foco-grupo="proximoEpisodio" data-foco-indice="0">Assistir agora</div>' +
+            '<div class="proximo-episodio-botao" data-foco-grupo="proximoEpisodio" data-foco-indice="1">Cancelar</div>' +
+            "</div></div>";
+        (dom.playerOverlay || document.getElementById("playerOverlay") || document.body).appendChild(caixa);
+
+        contagemDoProximo = {
+            episodio: episodio,
+            restante: SEGUNDOS_PARA_O_PROXIMO,
+            foco: 0,
+            caixa: caixa,
+            relogio: null,
+        };
+        state.player.controlsVisible = false;
+        clearPlayerHudTimer();
+        renderPlayer();
+        desenharContagemDoProximo();
+        contagemDoProximo.relogio = setInterval(function () {
+            if (!contagemDoProximo) {
+                return;
+            }
+            contagemDoProximo.restante -= 1;
+            if (contagemDoProximo.restante <= 0) {
+                irParaProximoEpisodio();
+                return;
+            }
+            desenharContagemDoProximo();
+        }, 1000);
+    }
+
+    function desenharContagemDoProximo() {
+        const c = contagemDoProximo;
+        if (!c) {
+            return;
+        }
+        const segundos = c.caixa.querySelector(".proximo-episodio-segundos");
+        if (segundos) segundos.textContent = String(c.restante);
+        const barra = c.caixa.querySelector(".proximo-episodio-barra-cheia");
+        if (barra) barra.style.width = Math.round((c.restante / SEGUNDOS_PARA_O_PROXIMO) * 100) + "%";
+        Array.prototype.forEach.call(c.caixa.querySelectorAll(".proximo-episodio-botao"), function (botao, indice) {
+            botao.classList.toggle("is-focused", indice === c.foco);
+        });
+    }
+
+    function fecharContagemDoProximo() {
+        const c = contagemDoProximo;
+        contagemDoProximo = null;
+        if (!c) {
+            return;
+        }
+        if (c.relogio) clearInterval(c.relogio);
+        if (c.caixa && c.caixa.parentNode) c.caixa.parentNode.removeChild(c.caixa);
+    }
+
+    function teclasDaContagemDoProximo(action, event) {
+        const c = contagemDoProximo;
+        if (action.type === "left" || action.type === "right" || action.type === "up" || action.type === "down") {
+            event.preventDefault();
+            c.foco = action.type === "left" || action.type === "up" ? 0 : 1;
+            desenharContagemDoProximo();
+            return;
+        }
+        if (action.type === "enter" || action.type === "playpause" || action.type === "play" || action.type === "next") {
+            event.preventDefault();
+            if (c.foco === 1 && action.type === "enter") {
+                closePlayer();
+                return;
+            }
+            irParaProximoEpisodio();
+            return;
+        }
+        if (action.type === "back" || action.type === "stop") {
+            event.preventDefault();
+            closePlayer();
+        }
+    }
+
     function handlePlayerPlaybackEnded() {
         if (!state.player.open) {
             return;
@@ -4111,10 +4257,7 @@
         if (state.player.type === "series" && state.player.seriesSnapshot && state.player.itemSnapshot) {
             const nextEpisode = nextSeriesEpisodeAfter(state.player.seriesSnapshot, state.player.itemSnapshot);
             if (nextEpisode) {
-                openSeriesEpisode(state.player.seriesSnapshot, nextEpisode, {
-                    startFromBeginning: true,
-                });
-                showToast("Abrindo o proximo episodio.", "success");
+                abrirContagemDoProximo(nextEpisode);
                 return;
             }
         }
@@ -4123,6 +4266,7 @@
     }
 
     function openPlayer(playerState) {
+        fecharContagemDoProximo();
         clearPlayerHudTimer();
         state.player.open = true;
         state.player.title = playerState.title;
@@ -4169,6 +4313,7 @@
     }
 
     function closePlayer() {
+        fecharContagemDoProximo();
         const shouldKeepLivePreview = shouldDemoteNativePlayerToPreview();
         const previewUrl = shouldKeepLivePreview ? state.player.url : "";
         const previewItemKey =
@@ -4495,6 +4640,7 @@
                 { id: "toggle", enabled: false },
                 { id: "forward", enabled: false },
                 { id: "favorite", enabled: false, oculta: true },
+                { id: "next", enabled: false, oculta: true },
                 { id: "close", enabled: true },
             ];
         }
@@ -4507,6 +4653,7 @@
                 { id: "toggle", enabled: false, oculta: true },
                 { id: "forward", enabled: false, oculta: true },
                 { id: "favorite", enabled: Boolean(state.player.itemSnapshot) },
+                { id: "next", enabled: false, oculta: true },
                 { id: "close", enabled: true },
             ];
         }
@@ -4516,6 +4663,8 @@
             { id: "toggle", enabled: true },
             { id: "forward", enabled: state.player.canSeek },
             { id: "favorite", enabled: false, oculta: true },
+            // 1.4.8: pula para o proximo episodio (so em serie, e se houver um).
+            { id: "next", enabled: Boolean(proximoEpisodioDoPlayer()), oculta: !proximoEpisodioDoPlayer() },
             { id: "close", enabled: true },
         ];
     }
@@ -4624,6 +4773,11 @@
 
         if (action.id === "favorite") {
             favoritarNoPlayer();
+            return;
+        }
+
+        if (action.id === "next") {
+            irParaProximoEpisodio();
             return;
         }
 
@@ -8571,7 +8725,7 @@
     function renderPlayer() {
         syncScreenSaverState();
 
-        const hudVisible = Boolean(state.player.controlsVisible || state.player.paused);
+        const hudVisible = Boolean(state.player.controlsVisible || state.player.paused) && !contagemDoProximo;
         const progressFocused = Boolean(hudVisible && state.player.canSeek && isPlayerProgressFocused());
         const playerEngine = state.player.open
             ? state.player.engine || "html5"

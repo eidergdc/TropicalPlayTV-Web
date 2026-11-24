@@ -3962,6 +3962,88 @@ html .catalog-screen[data-variant] .series-page .series-episode-card.is-focused 
 html .catalog-screen[data-variant] .series-page .is-focused .series-season-title,
 html .catalog-screen[data-variant] .series-page .is-focused .series-episode-title { color: #ffffff; }
 
+/* Barra do player (1.4.8): a altura fixa de 212px cortava a fileira de botoes embaixo
+   da tela (so aparecia a pontinha de "10s" e "Adiantar"). */
+.player-hud.is-visible { height: 268px; }
+.player-bottombar { height: 268px; }
+
+/* Aviso de proximo episodio (1.4.8) - ver abrirContagemDoProximo no main.js. */
+.proximo-episodio {
+    position: absolute;
+    right: 64px;
+    bottom: 64px;
+    z-index: 5;
+    width: 820px;
+    display: flex;
+    align-items: center;
+    padding: 22px;
+    border-radius: 26px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(8, 12, 20, 0.94);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
+    color: #ffffff;
+}
+.proximo-episodio-capa {
+    flex: 0 0 300px;
+    width: 300px;
+    height: 169px;
+    border-radius: 16px;
+    object-fit: cover;
+    background: #05090f;
+}
+.proximo-episodio-texto { flex: 1 1 0; min-width: 0; margin-left: 26px; }
+.proximo-episodio-titulo {
+    margin: 0;
+    color: #ff9a2e;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+.proximo-episodio-nome {
+    margin: 8px 0 0;
+    font-size: 27px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.proximo-episodio-tempo { margin: 10px 0 0; font-size: 19px; color: rgba(255, 255, 255, 0.75); }
+.proximo-episodio-tempo b { color: #ffffff; font-size: 22px; }
+.proximo-episodio-barra {
+    height: 6px;
+    margin-top: 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+}
+.proximo-episodio-barra-cheia {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #ff8c1a, #ffd166);
+    transition: width 1s linear;
+}
+.proximo-episodio-botoes { display: flex; margin-top: 18px; }
+.proximo-episodio-botao {
+    padding: 14px 28px;
+    margin-right: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 21px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.proximo-episodio-botao.is-focused {
+    border-color: #ffffff;
+    background:
+        linear-gradient(180deg, rgba(255, 170, 90, 0.4), rgba(255, 140, 60, 0.2)),
+        rgba(40, 30, 24, 0.96);
+    box-shadow: inset 0 0 0 3px #ffffff;
+}
+
 /* Abertura do app (1.4.2) - ver index.html (#abertura). So transform, opacity e
    filter: roda tambem nas TVs antigas (Chromium 56), sem grid, gap nem inset. */
 .abertura {
