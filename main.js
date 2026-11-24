@@ -1,10 +1,16 @@
 (function () {
+    // Copia antiga (main-legado.js) ja rodando nesta TV: esta nao roda de novo (1.5.7).
+    if (window.TP_APP_RODANDO) {
+        return;
+    }
+    window.TP_APP_RODANDO = true;
+
     // Versao do app web (o MSX abre este app em tv.tropicalplaytv.com). Segue a numeracao
     // do app da Samsung, de onde ele veio (1.0.8), subindo o ultimo digito a cada entrega;
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.5.6";
+    const APP_VERSION = "1.5.7";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,

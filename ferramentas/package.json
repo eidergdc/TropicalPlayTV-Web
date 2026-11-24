@@ -1,0 +1,16 @@
+{
+  "name": "tropicalplay-web-ferramentas",
+  "private": true,
+  "description": "Gera main-legado.js (ES5) e lib/legado/polyfills.js para TVs antigas (Samsung 2016/2017).",
+  "scripts": {
+    "legado": "node gerar-legado.js"
+  },
+  "devDependencies": {
+    "@babel/core": "7.26.0",
+    "@babel/preset-env": "7.26.0",
+    "acorn": "8.14.0",
+    "core-js-bundle": "3.39.0",
+    "regenerator-runtime": "0.14.1",
+    "whatwg-fetch": "3.6.20"
+  }
+}

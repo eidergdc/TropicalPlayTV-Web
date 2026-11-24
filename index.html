@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.6">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.7">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -14,7 +14,7 @@
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.6">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.7">');
     })();
     </script>
     <style>
@@ -110,7 +110,24 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.5.6" defer></script>
+    <script>
+    // 1.5.7: TV antiga (navegador sem async/await - Samsung 2016/2017, ex.: UN40KU6300).
+    // O main.js inteiro era descartado com erro de sintaxe e a TV parava na tela de fundo
+    // da abertura. Ali entra a copia traduzida para ES5 (main-legado.js, gerada por
+    // ferramentas/gerar-legado.js) com os complementos (lib/legado/polyfills.js). Ela roda
+    // antes e marca TP_APP_RODANDO: o main.js abaixo ve a marca e nao roda de novo.
+    // ?legado=1 forca a copia antiga, para testar no computador.
+    (function () {
+        var moderno = true;
+        try { new Function("async function f() { await 0; } let a = 1; const b = 2;"); } catch (e) { moderno = false; }
+        if (/[?&]legado=1/.test(location.search)) moderno = false;
+        if (!moderno) {
+            document.write('<script src="lib/legado/polyfills.js?v=1.5.7"><\/script>');
+            document.write('<script src="./main-legado.js?v=1.5.7"><\/script>');
+        }
+    })();
+    </script>
+    <script src="./main.js?v=1.5.7" defer></script>
 </head>
 <body>
     <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
