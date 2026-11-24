@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.2">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.3">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -14,7 +14,7 @@
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.2">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.3">');
     })();
     </script>
     <style>
@@ -110,7 +110,7 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.5.2" defer></script>
+    <script src="./main.js?v=1.5.3" defer></script>
 </head>
 <body>
     <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
@@ -233,8 +233,8 @@
                         <p class="eyebrow">Nova base nativa para TV</p>
                         <h2 role="presentation">Entre com seu codigo e navegue com o controle remoto.</h2>
                         <p class="hero-text">
-                            Inspirado no Roku Native e no TP Media Fire, agora em um app Tizen Web
-                            desenhado para Samsung TV.
+                            O mesmo Tropical Play da Fire TV e do Roku, agora para Smart TV, Android TV,
+                            Fire TV, celular e tablet.
                         </p>
                     </div>
                     <div class="hero-art">
@@ -381,12 +381,15 @@
                             <h2 role="presentation">Tropical Play</h2>
                         </div>
                         <p class="panel-subtitle settings-description">
-                            Gerencie a sessao desta TV com seguranca e recarregue o acesso quando precisar.
+                            Seu plano, a senha do controle parental e o contato do suporte.
                         </p>
                     </div>
 
                     <div class="settings-summary" id="settingsSummary"></div>
-                    <div class="settings-list" id="settingsList"></div>
+                    <div class="settings-row">
+                        <div class="settings-list" id="settingsList"></div>
+                        <div class="settings-support" id="settingsSupport"></div>
+                    </div>
                 </div>
             </section>
 
@@ -458,6 +461,17 @@
                     Pressione OK em Sim para sair ou escolha Nao para continuar no aplicativo.
                 </p>
                 <div class="exit-actions" id="exitActions"></div>
+            </div>
+        </div>
+
+        <div class="overlay exit-overlay senha-overlay hidden" id="senhaParentalOverlay" tabindex="-1">
+            <div class="exit-dialog senha-dialog">
+                <p class="eyebrow">Controle parental</p>
+                <h2 role="presentation" id="senhaParentalTitulo">Conteudo adulto (+18)</h2>
+                <p class="panel-subtitle exit-message" id="senhaParentalTexto"></p>
+                <div class="senha-pontos" id="senhaParentalPontos"></div>
+                <p class="senha-erro" id="senhaParentalErro"></p>
+                <div class="senha-teclado" id="senhaParentalTeclado"></div>
             </div>
         </div>
 

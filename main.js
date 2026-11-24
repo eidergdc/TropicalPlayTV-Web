@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.5.2";
+    const APP_VERSION = "1.5.3";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -97,7 +97,20 @@
     const SESSION_TAKEOVER_AFTER_MS = 5 * 60 * 1000;
     const SESSION_CONFLICT_COUNTDOWN_SECONDS = 30;
     const SESSION_ACCESS_TIMEOUT_MS = 12000;
-    const SESSION_PLATFORM_LABEL = "Samsung TV";
+    // Nome do aparelho gravado na sessao (o painel e o aviso de "codigo em outro
+    // aparelho" mostram). O app roda em Samsung, Android TV, Fire TV, iPad e navegador.
+    const SESSION_PLATFORM_LABEL = (function () {
+        const ua = navigator.userAgent || "";
+        if (/Tizen/i.test(ua)) return "Samsung TV";
+        if (/Web0S|webOS/i.test(ua)) return "LG TV";
+        if (/VIDAA|Hisense/i.test(ua)) return "VIDAA TV";
+        if (/AFT[A-Z0-9]|Amazon|Silk/i.test(ua)) return "Fire TV";
+        if (/Android/i.test(ua) && /TV|BRAVIA|AndroidTV|GoogleTV|SmartTV/i.test(ua)) return "Android TV";
+        if (/iPad|Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return "iPad";
+        if (/iPhone|iPod/i.test(ua)) return "iPhone";
+        if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? "Celular Android" : "Android";
+        return "Navegador";
+    })();
     const VOD_STALL_THRESHOLD_MS = 20000;
     const NETWORK_PROBE_INTERVAL_MS = 3000;
     const NETWORK_POPUP_TIMEOUT_MS = 20000;
@@ -212,9 +225,15 @@
             badge: "UPD",
         },
         {
+            id: "parental",
+            title: "Controle parental",
+            subtitle: "Senha para abrir canais, filmes e series adultos (+18). Senha padrao: 0000. OK para trocar.",
+            badge: "+18",
+        },
+        {
             id: "logout",
             title: "Sair da conta",
-            subtitle: "Remove este acesso da TV e retorna para a tela de codigo.",
+            subtitle: "Remove este acesso deste aparelho e retorna para a tela de codigo.",
             badge: "OUT",
         },
     ];
@@ -502,6 +521,20 @@
             message: "",
             optionIndex: 0,
             secondsLeft: SESSION_CONFLICT_COUNTDOWN_SECONDS,
+        },
+        senhaParental: {
+            open: false,
+            etapa: "liberar",
+            digitos: "",
+            keyIndex: 0,
+            nova: "",
+            erro: "",
+            aoLiberar: null,
+        },
+        suporte: {
+            carregando: false,
+            carregado: false,
+            dados: null,
         },
         exitPrompt: {
             open: false,
@@ -870,6 +903,13 @@
         dom.sessionCountdown = document.getElementById("sessionCountdown");
         dom.sessionActions = document.getElementById("sessionActions");
         dom.exitOverlay = document.getElementById("exitOverlay");
+        dom.senhaOverlay = document.getElementById("senhaParentalOverlay");
+        dom.senhaTitulo = document.getElementById("senhaParentalTitulo");
+        dom.senhaTexto = document.getElementById("senhaParentalTexto");
+        dom.senhaPontos = document.getElementById("senhaParentalPontos");
+        dom.senhaErro = document.getElementById("senhaParentalErro");
+        dom.senhaTeclado = document.getElementById("senhaParentalTeclado");
+        dom.settingsSupport = document.getElementById("settingsSupport");
         dom.exitActions = document.getElementById("exitActions");
         dom.resumeOverlay = document.getElementById("resumeOverlay");
         dom.resumeTitle = document.getElementById("resumeTitle");
@@ -1185,6 +1225,18 @@
         // 1.5.0: botoes dos avisos (codigo em outro aparelho, sair do app, canal travado)
         // nao tinham etiqueta de mouse/toque: no iPad o toque nao fazia nada e o aviso de
         // "codigo em outro dispositivo" prendia o cliente. O toque escolhe o botao e da OK.
+        // Teclado da senha do controle parental (1.5.3).
+        const teclaDaSenha = event.target && event.target.closest ? event.target.closest(".senha-tecla") : null;
+        if (teclaDaSenha && state.senhaParental.open) {
+            event.preventDefault();
+            state.senhaParental.keyIndex = Number(teclaDaSenha.getAttribute("data-indice")) || 0;
+            executarTeclaDaSenha();
+            return;
+        }
+        if (state.senhaParental.open && event.target && event.target.closest && event.target.closest("#senhaParentalOverlay")) {
+            event.preventDefault();
+            return;
+        }
         const botaoDeAviso = event.target && event.target.closest
             ? event.target.closest(".session-action, .exit-action, .player-recovery-action")
             : null;
@@ -1553,6 +1605,16 @@
     }
 
     function onKeyDown(event) {
+        if (state.senhaParental.open) {
+            const senhaAction = normalizeKey(event);
+            if (!senhaAction) {
+                return;
+            }
+            consumeKeyEvent(event);
+            teclasDaSenhaParental(senhaAction);
+            return;
+        }
+
         if (state.exitPrompt.open) {
             const exitAction = normalizeKey(event);
             if (!exitAction) {
@@ -2445,6 +2507,16 @@
             if (action.type === "right" || action.type === "enter") {
                 event.preventDefault();
 
+                if (
+                    state.catalog.selectedCategoryIndex !== state.catalog.categoryIndex &&
+                    categoriaBloqueada(categories[state.catalog.categoryIndex])
+                ) {
+                    abrirSenhaParental("liberar", function () {
+                        handleCatalogKeys({ type: "enter" }, { preventDefault: function () {} });
+                    });
+                    return;
+                }
+
                 if (state.catalog.selectedCategoryIndex === state.catalog.categoryIndex) {
                     state.catalog.zone = "items";
                     state.catalog.itemIndex = clampIndex(
@@ -2739,6 +2811,14 @@
     }
 
     function openFocusedSelectionCategory() {
+        if (
+            state.catalog.selectedCategoryIndex !== state.catalog.categoryIndex &&
+            categoriaBloqueada(currentCategories()[state.catalog.categoryIndex])
+        ) {
+            abrirSenhaParental("liberar", openFocusedSelectionCategory);
+            return;
+        }
+
         if (state.catalog.selectedCategoryIndex === state.catalog.categoryIndex) {
             state.catalog.zone = "items";
             state.catalog.itemIndex =
@@ -3835,7 +3915,7 @@
         if (type === "live") {
             const liveCategories = displayLiveCategories();
             const firstPlayableLiveIndex = liveCategories.findIndex(function (category) {
-                return !isAllLiveCategoryId(category && category.category_id ? category.category_id : "");
+                return !isAllLiveCategoryId(category && category.category_id ? category.category_id : "") && !categoriaBloqueada(category);
             });
             return firstPlayableLiveIndex >= 0 ? firstPlayableLiveIndex : 0;
         }
@@ -3848,6 +3928,9 @@
 
         const firstPlayableIndex = categories.findIndex(function (category) {
             const categoryId = String(category && category.category_id ? category.category_id : "");
+            if (categoriaBloqueada(category)) {
+                return false;
+            }
             if (type === "movies") {
                 return categoryId !== ALL_MOVIES_CATEGORY_ID && categoryId !== RECENT_MOVIES_CATEGORY_ID && categoryId.toUpperCase() !== "ALL";
             }
@@ -6883,7 +6966,14 @@
             return;
         }
 
+        if (actionId === "parental") {
+            abrirSenhaParental("atual", null);
+            return;
+        }
+
         if (actionId === "logout") {
+            controleParentalLiberado = false;
+            limparFiltroAdulto();
             clearSession();
             setScreen("code");
             showToast("Sessao removida desta TV.", "success");
@@ -7100,7 +7190,9 @@
             bits.push(
                 '<div class="pill"><strong>' +
                     (state.screen === "splash" ? "TP Media" : "Tropical Play") +
-                    "</strong> Samsung TV</div>"
+                    "</strong> " +
+                    escapeHtml(SESSION_PLATFORM_LABEL) +
+                    "</div>"
             );
         }
 
@@ -7935,8 +8027,11 @@
         dom.settingsSummary.innerHTML = [
             metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"),
             metaCard("Codigo", state.profile && state.profile.userNumber ? state.profile.userNumber : "Sem codigo"),
-            metaCard("Expira em", formatDate(state.profile && state.profile.expiresAt)),
+            cartaoDoVencimento(),
         ].join("");
+        renderSuporte();
+        atualizarDadosDoPlano();
+        carregarSuporte();
 
         dom.settingsList.innerHTML = SETTINGS_ACTIONS.map(function (action) {
             return (
@@ -10914,6 +11009,10 @@
     }
 
     function catalogCategoryCopy(category, index) {
+        if (categoriaBloqueada(category)) {
+            return "Protegida por senha (+18)";
+        }
+
         if (category.category_id === FAVORITES_CATEGORY_ID) {
             return "Canais ao vivo adicionados aos favoritos";
         }
@@ -11192,6 +11291,451 @@
 
     function isAllPosterCategoryId(type, categoryId) {
         return type === "series" ? isAllSeriesCategoryId(categoryId) : isAllMoviesCategoryId(categoryId);
+    }
+
+    // ---- Controle parental (1.5.3) ----------------------------------------------------
+    // Igual ao TP Media da Fire TV: senha de 4 numeros guardada no aparelho (padrao
+    // 0000). Categoria com nome de conteudo adulto pede a senha para abrir; depois de
+    // acertar, fica liberado ate fechar o app. Enquanto estiver bloqueado, os itens
+    // dessas categorias (ou marcados is_adult pelo painel) somem de "Todos", da busca,
+    // dos favoritos e dos assistidos.
+    const CHAVE_SENHA_PARENTAL = "tp_controle_parental_senha";
+    const SENHA_PARENTAL_PADRAO = "0000";
+    const MARCAS_DE_ADULTO = [
+        "adulto", "adult", "xxx", "porn", "erotic", "erotico", "sexy", "sex ", "+18", "18+",
+        "proibido", "onlyfans", "only fans", "privacy",
+    ];
+    let controleParentalLiberado = false;
+    let filtroAdultoCache = typeof WeakMap === "function" ? new WeakMap() : null;
+    const idsAdultosCache = {};
+
+    function senhaParentalAtual() {
+        try {
+            const salva = localStorage.getItem(CHAVE_SENHA_PARENTAL);
+            return /^[0-9]{4}$/.test(salva || "") ? salva : SENHA_PARENTAL_PADRAO;
+        } catch (error) {
+            return SENHA_PARENTAL_PADRAO;
+        }
+    }
+
+    function nomeDeConteudoAdulto(nome) {
+        const texto = normalizedSearchText(nome).trim();
+        if (!texto) {
+            return false;
+        }
+        if (/\bsex\b/.test(texto)) {
+            return true;
+        }
+        return MARCAS_DE_ADULTO.some(function (marca) {
+            return texto.indexOf(marca) >= 0;
+        });
+    }
+
+    function categoriaBloqueada(category) {
+        return Boolean(!controleParentalLiberado && category && nomeDeConteudoAdulto(category.category_name));
+    }
+
+    function tipoDaBiblioteca(tipo) {
+        if (tipo === "movie" || tipo === "movies") return "movies";
+        if (tipo === "series") return "series";
+        return "live";
+    }
+
+    function idsDeCategoriasAdultas(tipo) {
+        const chave = tipoDaBiblioteca(tipo);
+        const biblioteca = state.library[chave];
+        const categorias = (biblioteca && biblioteca.categories) || [];
+        const guardado = idsAdultosCache[chave];
+        if (guardado && guardado.categorias === categorias) {
+            return guardado.ids;
+        }
+        const ids = Object.create(null);
+        categorias.forEach(function (category) {
+            if (category && nomeDeConteudoAdulto(category.category_name)) {
+                ids[String(category.category_id)] = true;
+            }
+        });
+        idsAdultosCache[chave] = { categorias: categorias, ids: ids };
+        return ids;
+    }
+
+    function itemAdulto(item, tipo) {
+        if (!item || item.searchAction) {
+            return false;
+        }
+        if (String(item.is_adult) === "1") {
+            return true;
+        }
+        const tipoDoItem = item.favorite_type ? favoriteTypeForItem(item, tipo) : tipo;
+        return Boolean(idsDeCategoriasAdultas(tipoDoItem)[String(item.category_id || "")]);
+    }
+
+    function filtrarAdultos(items, tipo) {
+        if (controleParentalLiberado || !Array.isArray(items) || !items.length) {
+            return items;
+        }
+        if (filtroAdultoCache && filtroAdultoCache.has(items)) {
+            return filtroAdultoCache.get(items);
+        }
+        let algumAdulto = false;
+        const filtrados = items.filter(function (item) {
+            const adulto = itemAdulto(item, tipo);
+            algumAdulto = algumAdulto || adulto;
+            return !adulto;
+        });
+        const resultado = algumAdulto ? filtrados : items;
+        if (filtroAdultoCache) {
+            filtroAdultoCache.set(items, resultado);
+        }
+        return resultado;
+    }
+
+    function limparFiltroAdulto() {
+        filtroAdultoCache = typeof WeakMap === "function" ? new WeakMap() : null;
+        invalidateMovieSearchCache();
+        state.catalog.movieSearchIndexKey = "";
+    }
+
+    function abrirSenhaParental(etapa, aoLiberar) {
+        state.senhaParental.open = true;
+        state.senhaParental.etapa = etapa;
+        state.senhaParental.digitos = "";
+        state.senhaParental.keyIndex = 0;
+        state.senhaParental.nova = "";
+        state.senhaParental.erro = "";
+        state.senhaParental.aoLiberar = aoLiberar || null;
+        cancelFavoriteHold();
+        renderSenhaParental();
+    }
+
+    function fecharSenhaParental() {
+        state.senhaParental.open = false;
+        state.senhaParental.digitos = "";
+        state.senhaParental.aoLiberar = null;
+        renderSenhaParental();
+    }
+
+    function renderSenhaParental() {
+        if (!dom.senhaOverlay) {
+            return;
+        }
+        const senha = state.senhaParental;
+        dom.senhaOverlay.classList.toggle("hidden", !senha.open);
+        if (!senha.open) {
+            return;
+        }
+        const textos = {
+            liberar: ["Conteudo adulto (+18)", "Digite a senha do controle parental para abrir esta categoria."],
+            atual: ["Controle parental", "Digite a senha atual. (A senha padrao e 0000)"],
+            nova: ["Nova senha", "Digite a nova senha de 4 numeros."],
+            confirmar: ["Confirme a nova senha", "Digite a nova senha mais uma vez."],
+        };
+        const texto = textos[senha.etapa] || textos.liberar;
+        dom.senhaTitulo.textContent = texto[0];
+        dom.senhaTexto.textContent = texto[1];
+        dom.senhaErro.textContent = senha.erro || "";
+        dom.senhaPontos.innerHTML = [0, 1, 2, 3]
+            .map(function (i) {
+                return '<span class="senha-ponto' + (i < senha.digitos.length ? " is-cheio" : "") + '"></span>';
+            })
+            .join("");
+        dom.senhaTeclado.innerHTML = CODE_KEYS.map(function (tecla, indice) {
+            return (
+                '<button aria-hidden="true" role="presentation" tabindex="-1" type="button" class="senha-tecla' +
+                (tecla.type === "submit" ? " is-ok" : "") +
+                (indice === senha.keyIndex ? " is-focused" : "") +
+                '" data-indice="' +
+                indice +
+                '">' +
+                escapeHtml(tecla.label) +
+                "</button>"
+            );
+        }).join("");
+    }
+
+    function teclasDaSenhaParental(action) {
+        const senha = state.senhaParental;
+        if (action.type === "digit") {
+            digitarNaSenha(action.value);
+            return;
+        }
+        if (action.type === "back" || action.type === "stop") {
+            fecharSenhaParental();
+            return;
+        }
+        const colunas = 3;
+        const total = CODE_KEYS.length;
+        if (action.type === "left") {
+            senha.keyIndex = senha.keyIndex % colunas === 0 ? senha.keyIndex + colunas - 1 : senha.keyIndex - 1;
+        } else if (action.type === "right") {
+            senha.keyIndex = senha.keyIndex % colunas === colunas - 1 ? senha.keyIndex - colunas + 1 : senha.keyIndex + 1;
+        } else if (action.type === "up") {
+            senha.keyIndex = (senha.keyIndex - colunas + total) % total;
+        } else if (action.type === "down") {
+            senha.keyIndex = (senha.keyIndex + colunas) % total;
+        } else if (action.type === "enter") {
+            executarTeclaDaSenha();
+            return;
+        } else {
+            return;
+        }
+        renderSenhaParental();
+    }
+
+    function executarTeclaDaSenha() {
+        const senha = state.senhaParental;
+        const tecla = CODE_KEYS[senha.keyIndex];
+        if (!tecla) {
+            return;
+        }
+        if (tecla.type === "digit") {
+            digitarNaSenha(tecla.value);
+        } else if (tecla.type === "back") {
+            senha.digitos = senha.digitos.slice(0, -1);
+            senha.erro = "";
+            renderSenhaParental();
+        } else if (tecla.type === "submit") {
+            conferirSenhaParental();
+        }
+    }
+
+    function digitarNaSenha(digito) {
+        const senha = state.senhaParental;
+        if (senha.digitos.length >= 4) {
+            return;
+        }
+        senha.digitos += String(digito);
+        senha.erro = "";
+        renderSenhaParental();
+        if (senha.digitos.length === 4) {
+            window.setTimeout(conferirSenhaParental, 160);
+        }
+    }
+
+    function conferirSenhaParental() {
+        const senha = state.senhaParental;
+        if (!senha.open) {
+            return;
+        }
+        if (senha.digitos.length < 4) {
+            if (senha.digitos.length) {
+                senha.erro = "A senha tem 4 numeros.";
+                renderSenhaParental();
+            }
+            return;
+        }
+        const digitado = senha.digitos;
+        senha.digitos = "";
+
+        if (senha.etapa === "liberar") {
+            if (digitado !== senhaParentalAtual()) {
+                senha.erro = "Senha incorreta. Tente de novo.";
+                renderSenhaParental();
+                return;
+            }
+            const continuar = senha.aoLiberar;
+            controleParentalLiberado = true;
+            limparFiltroAdulto();
+            fecharSenhaParental();
+            showToast("Conteudo adulto liberado ate fechar o app.", "success");
+            if (typeof continuar === "function") {
+                continuar();
+            } else if (state.screen === "catalog") {
+                renderCatalogScreen();
+            }
+            return;
+        }
+
+        if (senha.etapa === "atual") {
+            if (digitado !== senhaParentalAtual()) {
+                senha.erro = "Senha incorreta. Tente de novo.";
+                renderSenhaParental();
+                return;
+            }
+            senha.etapa = "nova";
+            senha.keyIndex = 0;
+            renderSenhaParental();
+            return;
+        }
+
+        if (senha.etapa === "nova") {
+            senha.nova = digitado;
+            senha.etapa = "confirmar";
+            senha.keyIndex = 0;
+            renderSenhaParental();
+            return;
+        }
+
+        if (digitado !== senha.nova) {
+            senha.etapa = "nova";
+            senha.nova = "";
+            senha.erro = "As senhas nao conferem. Digite a nova senha de novo.";
+            renderSenhaParental();
+            return;
+        }
+        try {
+            localStorage.setItem(CHAVE_SENHA_PARENTAL, digitado);
+        } catch (error) {
+            console.log("Parental PIN save skipped:", error);
+        }
+        controleParentalLiberado = false;
+        limparFiltroAdulto();
+        fecharSenhaParental();
+        showToast("Senha do controle parental alterada.", "success");
+    }
+
+    // ---- Configuracoes: vencimento do plano e suporte (1.5.3) -------------------------
+    // O vencimento vem do cadastro do codigo no Firebase (devices.expiresAt), nao da data
+    // do servidor IPTV. O contato vem de app_settings/support_info, o mesmo do TP Media.
+    function diasParaVencer(expiresAt) {
+        if (!expiresAt) return null;
+        const data = new Date(expiresAt);
+        if (Number.isNaN(data.getTime())) return null;
+        return Math.ceil((data.getTime() - Date.now()) / 86400000);
+    }
+
+    function cartaoDoVencimento() {
+        const expiresAt = state.profile && state.profile.expiresAt;
+        const dias = diasParaVencer(expiresAt);
+        let data = "Sem data";
+        if (dias !== null) {
+            const d = new Date(expiresAt);
+            data = ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear();
+        }
+        let situacao = "";
+        let classe = "";
+        if (dias !== null) {
+            if (dias < 0) {
+                situacao = "Plano vencido";
+                classe = " is-vencido";
+            } else if (dias === 0) {
+                situacao = "Vence hoje";
+                classe = " is-perto";
+            } else if (dias === 1) {
+                situacao = "Vence amanha";
+                classe = " is-perto";
+            } else {
+                situacao = "Faltam " + dias + " dias";
+                classe = dias <= 3 ? " is-perto" : "";
+            }
+        }
+        return (
+            '<div class="meta-card vencimento-card' + classe + '">' +
+            '<p class="meta-label">Seu plano vence em</p>' +
+            '<p class="meta-value">' + escapeHtml(data) + "</p>" +
+            (situacao ? '<p class="vencimento-situacao">' + escapeHtml(situacao) + "</p>" : "") +
+            "</div>"
+        );
+    }
+
+    let ultimaLeituraDoPlano = 0;
+    async function atualizarDadosDoPlano() {
+        const profile = state.profile;
+        if (!firestore || !profile || !profile.firestoreDocumentId || Date.now() - ultimaLeituraDoPlano < 60000) {
+            return;
+        }
+        ultimaLeituraDoPlano = Date.now();
+        try {
+            const doc = await firestore.collection("devices").doc(profile.firestoreDocumentId).get();
+            if (!doc.exists || state.profile !== profile) {
+                return;
+            }
+            const data = doc.data() || {};
+            const novaData = normalizeDate(data.expiresAt);
+            if (novaData && novaData !== profile.expiresAt) {
+                profile.expiresAt = novaData;
+                profile.paymentStatus = Boolean(data.paymentStatus);
+                localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(profile));
+                if (state.screen === "settings" && dom.settingsSummary) {
+                    renderSettingsScreen();
+                }
+            }
+        } catch (error) {
+            console.log("Plan refresh skipped:", error);
+        }
+    }
+
+    async function carregarSuporte() {
+        const suporte = state.suporte;
+        if (!firestore || suporte.carregando || suporte.carregado) {
+            return;
+        }
+        suporte.carregando = true;
+        try {
+            const doc = await firestore.collection("app_settings").doc("support_info").get();
+            const data = doc.exists ? doc.data() || {} : {};
+            suporte.dados = data.isActive === true
+                ? {
+                      email: String(data.supportEmail || data.email || ""),
+                      link: String(data.supportLink || data.whatsapp_link || data.whatsapp || ""),
+                      mensagemQr: String(data.supportMessage || data.qr_message || ""),
+                      mensagem: String(data.message || ""),
+                      tipo: String(data.supportType || ""),
+                      valor: String(data.supportValue || ""),
+                  }
+                : null;
+            suporte.carregado = true;
+        } catch (error) {
+            console.log("Support info load failed:", error);
+        } finally {
+            suporte.carregando = false;
+        }
+        renderSuporte();
+    }
+
+    function linkDoQrDeSuporte(dados) {
+        if (dados.link) {
+            return dados.link;
+        }
+        const numero = String(dados.valor || "").replace(/[^0-9]/g, "");
+        return numero.length >= 8 ? "https://wa.me/" + numero : "";
+    }
+
+    function renderSuporte() {
+        if (!dom.settingsSupport) {
+            return;
+        }
+        const suporte = state.suporte;
+        if (!suporte.carregado) {
+            dom.settingsSupport.innerHTML =
+                '<div class="suporte-card"><div class="suporte-info"><p class="eyebrow">Suporte Tropical Play</p>' +
+                '<p class="suporte-linha">' + (suporte.carregando ? "Carregando contato..." : "Contato indisponivel no momento.") + "</p></div></div>";
+            return;
+        }
+        const dados = suporte.dados;
+        if (!dados) {
+            dom.settingsSupport.innerHTML =
+                '<div class="suporte-card"><div class="suporte-info"><p class="eyebrow">Suporte Tropical Play</p>' +
+                '<p class="suporte-linha">Informacoes de suporte indisponiveis.</p></div></div>';
+            return;
+        }
+        const linhas = [];
+        if (dados.valor) {
+            const rotulo = dados.tipo && !/^outro$/i.test(dados.tipo) ? dados.tipo : "Contato";
+            linhas.push('<p class="suporte-linha"><span>' + escapeHtml(rotulo) + "</span>" + escapeHtml(dados.valor) + "</p>");
+        }
+        if (dados.email) {
+            linhas.push('<p class="suporte-linha"><span>E-mail</span>' + escapeHtml(dados.email) + "</p>");
+        }
+        if (dados.mensagem) {
+            linhas.push('<p class="suporte-recado">' + escapeHtml(dados.mensagem) + "</p>");
+        }
+        const link = linkDoQrDeSuporte(dados);
+        const qr = link
+            ? '<div class="suporte-qr"><img alt="" src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data=' +
+              encodeURIComponent(link) +
+              '"><p>' +
+              escapeHtml(dados.mensagemQr || "Aponte a camera do celular para falar com o suporte.") +
+              "</p></div>"
+            : "";
+        dom.settingsSupport.innerHTML =
+            '<div class="suporte-card">' +
+            '<div class="suporte-info"><p class="eyebrow">Suporte Tropical Play</p>' +
+            '<h3 class="suporte-titulo">Fale com a gente</h3>' +
+            linhas.join("") +
+            "</div>" +
+            qr +
+            "</div>";
     }
 
     // Lupa das telas de filmes e series (1.5.2): leva para a categoria "Todos" e abre a
@@ -11486,14 +12030,14 @@
 
     function allPosterItems() {
         if (searchablePosterType() === "series") {
-            return allSeriesItems();
+            return filtrarAdultos(allSeriesItems(), "series");
         }
 
         if (searchablePosterType() === "live") {
-            return allLiveItems();
+            return filtrarAdultos(allLiveItems(), "live");
         }
 
-        return allMovieItems();
+        return filtrarAdultos(allMovieItems(), "movies");
     }
 
     function filteredAllMovieItems() {
@@ -11750,7 +12294,8 @@
             category.category_id === FAVORITES_MOVIES_CATEGORY_ID ||
             category.category_id === FAVORITES_SERIES_CATEGORY_ID
         ) {
-            return currentFavoriteItems(favoriteTypeForCategoryId(category.category_id));
+            const tipoFavorito = favoriteTypeForCategoryId(category.category_id);
+            return filtrarAdultos(currentFavoriteItems(tipoFavorito), tipoFavorito);
         }
         if (state.catalog.type === "live" && isAllLiveCategoryId(category.category_id)) {
             return allMovieDisplayItems();
@@ -11759,13 +12304,13 @@
             return allMovieDisplayItems();
         }
         if (state.catalog.type === "movies" && category.category_id === RECENT_MOVIES_CATEGORY_ID) {
-            return recentMovieItems();
+            return filtrarAdultos(recentMovieItems(), "movies");
         }
         if (state.catalog.type === "series" && isAllSeriesCategoryId(category.category_id)) {
             return allMovieDisplayItems();
         }
         if (state.catalog.type === "series" && category.category_id === RECENT_SERIES_CATEGORY_ID) {
-            return recentSeriesItems();
+            return filtrarAdultos(recentSeriesItems(), "series");
         }
         return state.library[state.catalog.type].itemsByCategory[category.category_id] || [];
     }
@@ -11790,7 +12335,8 @@
             category.category_id === FAVORITES_MOVIES_CATEGORY_ID ||
             category.category_id === FAVORITES_SERIES_CATEGORY_ID
         ) {
-            return currentFavoriteItems(favoriteTypeForCategoryId(category.category_id));
+            const tipoFavorito = favoriteTypeForCategoryId(category.category_id);
+            return filtrarAdultos(currentFavoriteItems(tipoFavorito), tipoFavorito);
         }
         if (state.catalog.type === "live" && isAllLiveCategoryId(category.category_id)) {
             return allMovieDisplayItems();
@@ -11799,13 +12345,13 @@
             return allMovieDisplayItems();
         }
         if (state.catalog.type === "movies" && category.category_id === RECENT_MOVIES_CATEGORY_ID) {
-            return recentMovieItems();
+            return filtrarAdultos(recentMovieItems(), "movies");
         }
         if (state.catalog.type === "series" && isAllSeriesCategoryId(category.category_id)) {
             return allMovieDisplayItems();
         }
         if (state.catalog.type === "series" && category.category_id === RECENT_SERIES_CATEGORY_ID) {
-            return recentSeriesItems();
+            return filtrarAdultos(recentSeriesItems(), "series");
         }
         return state.library[state.catalog.type].itemsByCategory[category.category_id] || [];
     }
