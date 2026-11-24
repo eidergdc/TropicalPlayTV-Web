@@ -206,3 +206,16 @@ html.sem-grid .media-input-keyboard > .is-wide { width: calc(25% - 10px); }
 /* Icone das setas do controle no rodape (3x3 quadradinhos). */
 html.sem-grid .remote-key-nav-grid { display: flex; flex-wrap: wrap; width: 30px; height: 30px; }
 html.sem-grid .remote-key-nav-grid > * { width: 10px; height: 10px; }
+
+/* Samsung 2016 (html.app-legado, 1.5.8): reserva para os teclados caso o flex com quebra
+   de linha falhe mesmo com prefixo - as teclas ficam lado a lado como inline-block, cada
+   uma com a largura de coluna ja definida acima. Onde o flex funciona isto nao muda nada
+   (item de flex ignora o inline-block). */
+html.app-legado .keypad > *,
+html.app-legado .search-keyboard > *,
+html.app-legado .media-input-keyboard > *,
+html.app-legado .senha-teclado > * {
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+}

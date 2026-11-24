@@ -5,16 +5,28 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.7">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.8">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
     // layout feito com flex. "?semgrid=1" forca o modo, para testar num navegador novo.
+    //
+    // 1.5.8: TV ainda mais antiga (sem async/await - Samsung 2016, WebKit antigo): flexbox
+    // so com prefixo e sem variaveis de CSS. Nela entram as copias geradas por
+    // ferramentas/gerar-legado.js (style-legado.css e antigas-legado.css), com os prefixos
+    // e as variaveis trocadas por valor fixo. "?legado=1" forca, para testar.
     (function () {
+        var legado = false;
+        try { new Function("async function f() { await 0; }"); } catch (e) { legado = true; }
+        if (/[?&]legado=1/.test(location.search)) legado = true;
+        if (legado) {
+            document.documentElement.className += " app-legado";
+            document.write('<link rel="stylesheet" type="text/css" href="css/style-legado.css?v=1.5.8">');
+        }
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.7">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/' + (legado ? "antigas-legado" : "antigas") + '.css?v=1.5.8">');
     })();
     </script>
     <style>
@@ -68,7 +80,22 @@
             // Pede para virar (aviso fora do body, que e escalado).
             raiz.classList.toggle("retrato", altura > largura * 1.1);
             raiz.style.setProperty("--vh", (ALTURA / 100) + "px");
+            // Navegador sem variaveis de CSS (Samsung 2016): o transform do corpo, que
+            // le --app-escala, nao vale ali; aplica direto no corpo (1.5.8).
+            escalaSemVariavel = Math.abs(escala - 1) >= 0.01
+                ? "translate(" + ((largura - LARGURA * escala) / 2) + "px, " + ((altura - ALTURA * escala) / 2) + "px) scale(" + escala + ")"
+                : "";
+            aplicarEscalaSemVariavel();
         }
+        var escalaSemVariavel = "";
+        var temVariavel = !!(window.CSS && CSS.supports && CSS.supports("--x", "0"));
+        function aplicarEscalaSemVariavel() {
+            if (temVariavel || !document.body) return;
+            var corpo = document.body.style;
+            corpo.webkitTransformOrigin = corpo.transformOrigin = "0 0";
+            corpo.webkitTransform = corpo.transform = escalaSemVariavel;
+        }
+        document.addEventListener("DOMContentLoaded", aplicarEscalaSemVariavel);
         ajustarEscala();
         window.addEventListener("resize", ajustarEscala);
         var aviso = document.createElement("div");
@@ -122,12 +149,12 @@
         try { new Function("async function f() { await 0; } let a = 1; const b = 2;"); } catch (e) { moderno = false; }
         if (/[?&]legado=1/.test(location.search)) moderno = false;
         if (!moderno) {
-            document.write('<script src="lib/legado/polyfills.js?v=1.5.7"><\/script>');
-            document.write('<script src="./main-legado.js?v=1.5.7"><\/script>');
+            document.write('<script src="lib/legado/polyfills.js?v=1.5.8"><\/script>');
+            document.write('<script src="./main-legado.js?v=1.5.8"><\/script>');
         }
     })();
     </script>
-    <script src="./main.js?v=1.5.7" defer></script>
+    <script src="./main.js?v=1.5.8" defer></script>
 </head>
 <body>
     <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
