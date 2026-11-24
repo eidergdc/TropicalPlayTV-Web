@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.4.4">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.4.5">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -14,7 +14,7 @@
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.4.4">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.4.5">');
     })();
     </script>
     <style>
@@ -110,69 +110,29 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.4.4" defer></script>
+    <script src="./main.js?v=1.4.5" defer></script>
 </head>
 <body>
-    <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
-         .app-shell e aparece antes do main.js rodar. Ao fundo, uma parede de capas
-         (as ultimas vistas nesta TV, guardadas pelo main.js) desliza inclinada; no
-         centro o logo entra, o nome surge, a linha dourada se desenha e a barra mostra
-         o andamento real. O main.js chama TPAbertura.etapa() e TPAbertura.fechar(). -->
+    <!-- Abertura do app (1.4.5): imagem parada, sem animacao. A versao animada (1.4.2 a
+         1.4.4) travava em algumas TVs LG; fica so o logo, o nome e o texto da etapa ate
+         a gente validar melhor o app. O main.js chama TPAbertura.etapa() e .fechar(). -->
     <div id="abertura" class="abertura">
-        <div class="abertura-fundo"></div>
-        <div class="abertura-parede" id="aberturaParede"></div>
-        <div class="abertura-sombra"></div>
-        <div class="abertura-brilho"></div>
         <div class="abertura-centro">
-            <div class="abertura-boia"><img class="abertura-logo" src="assets/icon.png" alt=""></div>
+            <img class="abertura-logo" src="assets/icon.png" alt="">
             <div class="abertura-nome">Tropical Play</div>
-            <div class="abertura-linha"></div>
-            <div class="abertura-barra"><div class="abertura-barra-cheia" id="aberturaBarra"></div></div>
             <div class="abertura-etapa" id="aberturaEtapa">Abrindo...</div>
         </div>
         <div class="abertura-versao" id="aberturaVersao"></div>
     </div>
     <script>
     (function () {
-        var raiz = document.getElementById("abertura");
-        var parede = document.getElementById("aberturaParede");
-        var barra = document.getElementById("aberturaBarra");
-        var etapa = document.getElementById("aberturaEtapa");
-        var inicio = Date.now();
-        var MINIMO_MS = 2600;
         var fechada = false;
         var demo = /[?&]abertura=demo/.test(location.search);
-
-        // Capas guardadas pelo main.js (ultimas vistas). Sem nenhuma (primeira vez nesta
-        // TV), a parede fica so com a imagem de fundo.
-        var capas = [];
-        try { capas = JSON.parse(localStorage.getItem("tp_abertura_capas") || "[]") || []; } catch (e) { capas = []; }
-        if (capas.length >= 6) {
-            var html = "";
-            for (var linha = 0; linha < 3; linha += 1) {
-                var faixa = "";
-                for (var i = 0; i < 8; i += 1) {
-                    var url = capas[(linha * 5 + i * 2) % capas.length];
-                    faixa += '<div class="abertura-capa" style="background-image:url(&quot;' +
-                        String(url).replace(/["\\<>]/g, "") + '&quot;)"></div>';
-                }
-                // A faixa vai duas vezes: o movimento anda metade e recomeca sem emenda.
-                html += '<div class="abertura-faixa abertura-faixa-' + linha + '">' + faixa + faixa + "</div>";
-            }
-            parede.innerHTML = html;
-        }
-
-        function definir(texto, pct) {
-            if (texto) etapa.textContent = texto;
-            if (pct >= 0) barra.style.width = Math.max(4, Math.min(100, pct)) + "%";
-        }
-        definir("Abrindo...", 8);
-
         window.TPAbertura = {
-            etapa: function (texto, pct) { if (!fechada) definir(texto, pct); },
-            // 1.4.4: depois que a abertura sai da pagina o elemento nao existe mais. Sem
-            // esta checagem o erro interrompia o desenho do app (o main.js chama isto a
-            // cada tela) e as listas do catalogo ficavam em branco.
+            etapa: function (texto) {
+                var alvo = document.getElementById("aberturaEtapa");
+                if (!fechada && alvo && texto) alvo.textContent = texto;
+            },
             versao: function (v) {
                 var alvo = document.getElementById("aberturaVersao");
                 if (alvo) alvo.textContent = "Versao " + v;
@@ -181,23 +141,12 @@
             fechar: function () {
                 if (fechada || demo) return;
                 fechada = true;
-                definir("Pronto!", 100);
-                var falta = Math.max(0, MINIMO_MS - (Date.now() - inicio));
-                setTimeout(function () {
-                    raiz.className += " abertura-saindo";
-                    setTimeout(function () { if (raiz.parentNode) raiz.parentNode.removeChild(raiz); }, 700);
-                }, falta + 250);
+                var raiz = document.getElementById("abertura");
+                if (raiz && raiz.parentNode) raiz.parentNode.removeChild(raiz);
             }
         };
-
-        // Teste no preview: ?abertura=demo deixa a abertura na tela, com as etapas em ciclo.
-        if (demo) {
-            var passos = [["Conectando ao servidor...", 22], ["Validando acesso...", 45], ["Carregando canais e filmes...", 72], ["Quase pronto...", 92], ["Pronto!", 100]];
-            var n = 0;
-            setInterval(function () { definir(passos[n % passos.length][0], passos[n % passos.length][1]); n += 1; }, 1400);
-        }
         // Rede de seguranca: nunca prender o cliente aqui.
-        setTimeout(function () { window.TPAbertura.fechar(); }, 25000);
+        setTimeout(function () { window.TPAbertura.fechar(); }, 20000);
     })();
     </script>
     <div class="app-shell" data-screen="splash" role="presentation" aria-hidden="true">
