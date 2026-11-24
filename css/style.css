@@ -3790,6 +3790,178 @@ html .catalog-screen[data-variant] .media-card.is-focused .media-title {
     color: #ffffff;
 }
 
+/* Temporadas e episodios numa pagina so (1.4.7) - ver renderSeriesBrowserPage no main.js.
+   Cabecalho curto, temporadas numa coluna a esquerda e episodios no resto da tela, cada
+   lista com sua rolagem. So flex e margens: roda nas TVs antigas (sem grid nem gap).
+   O "html ... [data-variant]" na frente ganha das regras antigas destas mesmas classes. */
+html .catalog-screen[data-variant] .series-page {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+html .catalog-screen[data-variant] .series-page-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+html .catalog-screen[data-variant] .series-page-poster {
+    flex: 0 0 100px;
+    width: 100px;
+    height: 150px;
+    border-radius: 14px;
+    object-fit: cover;
+    background: rgba(3, 7, 12, 0.82);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+html .catalog-screen[data-variant] .series-page-info { flex: 1 1 0; min-width: 0; margin-left: 26px; }
+html .catalog-screen[data-variant] .series-page-eyebrow {
+    margin: 0 0 6px;
+    color: #ff8c00;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+html .catalog-screen[data-variant] .series-page-title {
+    margin: 0;
+    color: #ffffff;
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1.12;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+html .catalog-screen[data-variant] .series-page-tags { margin-top: 12px; }
+html .catalog-screen[data-variant] .series-page-tags .tag { display: inline-block; margin-right: 10px; font-size: 17px; }
+html .catalog-screen[data-variant] .series-page-body {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    padding-top: 20px;
+}
+html .catalog-screen[data-variant] .series-page-seasons,
+html .catalog-screen[data-variant] .series-page-episodes {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+html .catalog-screen[data-variant] .series-page-seasons { flex: 0 0 390px; width: 390px; }
+html .catalog-screen[data-variant] .series-page-episodes { flex: 1 1 0; min-width: 0; margin-left: 30px; }
+html .catalog-screen[data-variant] .series-page-col-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-left: 4px;
+}
+html .catalog-screen[data-variant] .series-page-col-title {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 26px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+html .catalog-screen[data-variant] .is-active > .series-page-col-head .series-page-col-title { color: #ffffff; }
+html .catalog-screen[data-variant] .series-page-col-count {
+    margin-left: 14px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 19px;
+    font-weight: 600;
+}
+html .catalog-screen[data-variant] .series-page-col-hint {
+    margin: 0 0 0 20px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 17px;
+    white-space: nowrap;
+}
+
+/* As duas listas: rolagem propria, barrinha laranja. */
+html .catalog-screen[data-variant] .series-page .series-season-list,
+html .catalog-screen[data-variant] .series-page .series-episode-list {
+    display: block;
+    position: relative;
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    overflow-y: auto;
+    padding: 4px 12px 24px 4px;
+}
+html .catalog-screen[data-variant] .series-page .series-season-list::-webkit-scrollbar { width: 8px; }
+html .catalog-screen[data-variant] .series-page .series-season-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.08); border-radius: 999px; }
+html .catalog-screen[data-variant] .series-page .series-season-list::-webkit-scrollbar-thumb { background: rgba(255, 209, 102, 0.72); border-radius: 999px; }
+
+html .catalog-screen[data-variant] .series-page .series-season-chip {
+    display: block;
+    width: auto;
+    margin: 0 0 12px;
+    padding: 18px 22px;
+    border-radius: 18px;
+}
+html .catalog-screen[data-variant] .series-page .series-season-title { display: block; font-size: 23px; font-weight: 800; }
+html .catalog-screen[data-variant] .series-page .series-season-copy { display: block; margin-top: 4px; font-size: 17px; }
+
+html .catalog-screen[data-variant] .series-page .series-episode-card {
+    display: flex;
+    align-items: center;
+    margin: 0 0 14px;
+    padding: 14px;
+    border-radius: 20px;
+    transform: none;
+}
+html .catalog-screen[data-variant] .series-page .series-episode-thumb {
+    flex: 0 0 272px;
+    width: 272px;
+    height: 153px;
+    border-radius: 14px;
+}
+html .catalog-screen[data-variant] .series-page .series-episode-copy { display: block; flex: 1 1 0; min-width: 0; margin-left: 24px; }
+html .catalog-screen[data-variant] .series-page .series-episode-kicker { display: block; margin-bottom: 8px; }
+html .catalog-screen[data-variant] .series-page .series-episode-chip { display: inline-block; margin-right: 8px; line-height: 28px; font-size: 15px; }
+html .catalog-screen[data-variant] .series-page .series-episode-title {
+    margin: 0 0 6px;
+    font-size: 23px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+html .catalog-screen[data-variant] .series-page .series-episode-meta { margin: 0 0 6px; font-size: 16px; }
+html .catalog-screen[data-variant] .series-page .series-episode-description {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.45;
+    -webkit-line-clamp: 2;
+    max-height: 50px;
+}
+html .catalog-screen[data-variant] .series-page .series-browser-empty { margin: 4px 12px 0 4px; }
+
+/* Escolhido (a temporada aberta, o episodio marcado): faixa laranja na esquerda.
+   Cursor: o mesmo contorno branco das outras listas do catalogo. */
+html .catalog-screen[data-variant] .series-page .series-season-chip.is-selected,
+html .catalog-screen[data-variant] .series-page .series-episode-card.is-selected {
+    border-color: rgba(255, 179, 71, 0.55);
+    background:
+        linear-gradient(90deg, rgba(255, 160, 60, 0.16), rgba(255, 255, 255, 0.02)),
+        rgba(14, 19, 28, 0.94);
+    box-shadow: inset 6px 0 0 #ff9a2e;
+}
+html .catalog-screen[data-variant] .series-page .series-season-chip.is-focused,
+html .catalog-screen[data-variant] .series-page .series-episode-card.is-focused {
+    border-color: #ffffff;
+    background:
+        linear-gradient(180deg, rgba(255, 170, 90, 0.34), rgba(255, 140, 60, 0.16)),
+        rgba(40, 30, 24, 0.96);
+    box-shadow: inset 0 0 0 3px #ffffff, inset 0 0 0 6px rgba(255, 144, 81, 0.85);
+}
+html .catalog-screen[data-variant] .series-page .is-focused .series-season-title,
+html .catalog-screen[data-variant] .series-page .is-focused .series-episode-title { color: #ffffff; }
+
 /* Abertura do app (1.4.2) - ver index.html (#abertura). So transform, opacity e
    filter: roda tambem nas TVs antigas (Chromium 56), sem grid, gap nem inset. */
 .abertura {

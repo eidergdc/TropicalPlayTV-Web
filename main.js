@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.4.6";
+    const APP_VERSION = "1.4.7";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -1115,7 +1115,11 @@
         },
         seriesSeasons: function (i) {
             state.catalog.seriesDetailFocusZone = "seasons";
-            state.catalog.seriesDetailSeasonIndex = i;
+            if (state.catalog.seriesDetailSeasonIndex !== i) {
+                state.catalog.seriesDetailSeasonIndex = i;
+                state.catalog.seriesDetailEpisodeIndex = 0;
+                state.catalog.detailKey = "";
+            }
         },
         seriesEpisodes: function (i) {
             state.catalog.seriesDetailFocusZone = "episodes";
@@ -2558,130 +2562,79 @@
             return;
         }
 
+        // Pagina de temporadas e episodios (1.4.7).
+        const zona = state.catalog.seriesDetailFocusZone === "episodes" && episodes.length ? "episodes" : "seasons";
+
         if (action.type === "back") {
             event.preventDefault();
-            state.catalog.seriesDetailPage = isSeriesEpisodeBrowserPage() ? "seasons" : "overview";
-            state.catalog.seriesDetailFocusZone = isSeriesEpisodeBrowserPage() && seasons.length ? "seasons" : "actions";
+            if (zona === "episodes" && seasons.length) {
+                state.catalog.seriesDetailPage = "seasons";
+                state.catalog.seriesDetailFocusZone = "seasons";
+                syncCatalogFocus();
+                return;
+            }
+            state.catalog.seriesDetailPage = "overview";
+            state.catalog.seriesDetailFocusZone = "actions";
             state.catalog.detailActionIndex = 0;
             state.catalog.detailKey = "";
             renderCatalogScreen();
             return;
         }
 
-        if (state.catalog.seriesDetailFocusZone === "actions") {
-            if (action.type === "left") {
-                event.preventDefault();
-                state.catalog.detailActionIndex =
-                    state.catalog.detailActionIndex > 0 ? state.catalog.detailActionIndex - 1 : Math.max(actions.length - 1, 0);
-                syncCatalogFocus();
+        if (zona === "seasons") {
+            state.catalog.seriesDetailFocusZone = "seasons";
+            if (!seasons.length) {
                 return;
             }
 
-            if (action.type === "right") {
+            if (action.type === "up" || action.type === "down") {
                 event.preventDefault();
-                state.catalog.detailActionIndex = actions.length ? (state.catalog.detailActionIndex + 1) % actions.length : 0;
-                syncCatalogFocus();
-                return;
-            }
-
-            if (action.type === "down") {
-                event.preventDefault();
-                if (isSeriesSeasonBrowserPage() && seasons.length) {
-                    state.catalog.seriesDetailFocusZone = "seasons";
-                } else if (episodes.length) {
-                    state.catalog.seriesDetailFocusZone = "episodes";
+                const proxima = state.catalog.seriesDetailSeasonIndex + (action.type === "up" ? -1 : 1);
+                if (proxima >= 0 && proxima < seasons.length) {
+                    state.catalog.seriesDetailSeasonIndex = proxima;
+                    state.catalog.seriesDetailEpisodeIndex = 0;
+                    state.catalog.detailKey = "";
                 }
                 syncCatalogFocus();
                 return;
             }
 
-            if (action.type === "enter") {
+            if (action.type === "right" || action.type === "enter") {
                 event.preventDefault();
-                runPosterCatalogDetailAction(actions[state.catalog.detailActionIndex]);
-            }
-            return;
-        }
-
-        if (isSeriesSeasonBrowserPage() && state.catalog.seriesDetailFocusZone === "seasons") {
-            if (action.type === "up") {
-                event.preventDefault();
-                state.catalog.seriesDetailFocusZone = "actions";
-                syncCatalogFocus();
+                if (currentSeriesSeasonEpisodes(item).length) {
+                    state.catalog.seriesDetailFocusZone = "episodes";
+                    state.catalog.detailKey = "";
+                    syncCatalogFocus();
+                }
                 return;
             }
 
             if (action.type === "left") {
                 event.preventDefault();
-                state.catalog.seriesDetailSeasonIndex =
-                    state.catalog.seriesDetailSeasonIndex > 0 ? state.catalog.seriesDetailSeasonIndex - 1 : Math.max(seasons.length - 1, 0);
-                state.catalog.seriesDetailEpisodeIndex = 0;
-                state.catalog.detailKey = "";
-                syncCatalogFocus();
-                return;
-            }
-
-            if (action.type === "right") {
-                event.preventDefault();
-                state.catalog.seriesDetailSeasonIndex = seasons.length
-                    ? (state.catalog.seriesDetailSeasonIndex + 1) % seasons.length
-                    : 0;
-                state.catalog.seriesDetailEpisodeIndex = 0;
-                state.catalog.detailKey = "";
-                syncCatalogFocus();
-                return;
-            }
-
-            if (action.type === "down" || action.type === "enter") {
-                event.preventDefault();
-                state.catalog.seriesDetailEpisodeIndex = 0;
-                state.catalog.seriesDetailPage = "episodes";
-                state.catalog.seriesDetailFocusZone = "episodes";
-                state.catalog.detailActionIndex = 0;
-                state.catalog.detailKey = "";
-                renderCatalogScreen();
             }
             return;
         }
 
-        if (!episodes.length) {
-            if (action.type === "up") {
-                event.preventDefault();
-                state.catalog.seriesDetailFocusZone = seasons.length ? "seasons" : "actions";
-                syncCatalogFocus();
-            }
-            return;
-        }
-
-        if (action.type === "up") {
+        if (action.type === "up" || action.type === "down") {
             event.preventDefault();
-            if (state.catalog.seriesDetailEpisodeIndex > 0) {
-                state.catalog.seriesDetailEpisodeIndex -= 1;
-            }
-            syncCatalogFocus();
-            return;
-        }
-
-        if (action.type === "down") {
-            event.preventDefault();
-            if (state.catalog.seriesDetailEpisodeIndex < episodes.length - 1) {
-                state.catalog.seriesDetailEpisodeIndex += 1;
-            }
+            state.catalog.seriesDetailEpisodeIndex = clampIndex(
+                state.catalog.seriesDetailEpisodeIndex + (action.type === "up" ? -1 : 1),
+                episodes.length
+            );
             syncCatalogFocus();
             return;
         }
 
         if (action.type === "left") {
             event.preventDefault();
-            state.catalog.seriesDetailEpisodeIndex =
-                state.catalog.seriesDetailEpisodeIndex > 0 ? state.catalog.seriesDetailEpisodeIndex - 1 : 0;
+            state.catalog.seriesDetailFocusZone = seasons.length ? "seasons" : "episodes";
+            state.catalog.detailKey = "";
             syncCatalogFocus();
             return;
         }
 
         if (action.type === "right") {
             event.preventDefault();
-            state.catalog.seriesDetailEpisodeIndex = Math.min(state.catalog.seriesDetailEpisodeIndex + 1, episodes.length - 1);
-            syncCatalogFocus();
             return;
         }
 
@@ -3894,7 +3847,7 @@
 
         if (action.id === "browse-seasons") {
             state.catalog.seriesDetailPage = "seasons";
-            state.catalog.seriesDetailFocusZone = seriesSeasonEntries(item).length ? "seasons" : "actions";
+            state.catalog.seriesDetailFocusZone = "seasons";
             state.catalog.detailActionIndex = 0;
             state.catalog.detailKey = "";
             renderCatalogScreen();
@@ -6995,19 +6948,18 @@
     function renderCatalogFooterHint() {
         if (isPosterCatalogDetailView()) {
             if (isSeriesPosterDetailView()) {
-                if (isSeriesSeasonBrowserPage()) {
+                if (isSeriesSeasonBrowserPage() || isSeriesEpisodeBrowserPage()) {
+                    if (state.catalog.seriesDetailFocusZone === "episodes") {
+                        return [
+                            footerActionMarkup("nav", "Cima/baixo escolhem o episodio, esquerda volta as temporadas"),
+                            footerActionMarkup("enter", "Assistir"),
+                            footerActionMarkup("return", "Voltar para as temporadas"),
+                        ].join("");
+                    }
                     return [
-                        footerActionMarkup("nav", "Esq/dir escolhem temporada, cima/baixo mudam a area"),
-                        footerActionMarkup("enter", "Abrir episodios ou acao"),
+                        footerActionMarkup("nav", "Cima/baixo escolhem a temporada, direita vai aos episodios"),
+                        footerActionMarkup("enter", "Ver episodios"),
                         footerActionMarkup("return", "Voltar para a serie"),
-                    ].join("");
-                }
-
-                if (isSeriesEpisodeBrowserPage()) {
-                    return [
-                        footerActionMarkup("nav", "Esq/dir navegam, cima/baixo mudam a area"),
-                        footerActionMarkup("enter", "Selecionar episodio ou acao"),
-                        footerActionMarkup("return", "Voltar para as temporadas"),
                     ].join("");
                 }
 
@@ -7348,6 +7300,7 @@
                 syncCatalogSelectedState();
                 ensureNodeVisible(dom.seriesSeasonNodes && dom.seriesSeasonNodes[state.catalog.seriesDetailSeasonIndex]);
                 ensureNodeVisible(dom.seriesEpisodeNodes && dom.seriesEpisodeNodes[state.catalog.seriesDetailEpisodeIndex]);
+                renderFooter();
                 return;
             }
 
@@ -7979,7 +7932,9 @@
         if (state.catalog.type === "series" && isPosterCatalogDetailView() && item && !isCatalogSearchAction(item)) {
             syncSeriesDetailSelection(item);
         }
+        guardarRolagemDasSeries();
         dom.detailCard.innerHTML = renderDetail(item);
+        restaurarRolagemDasSeries();
         dom.catalogDetailActionNodes = Array.from(dom.detailCard.querySelectorAll(".catalog-action"));
         dom.searchKeyNodes = Array.from(dom.detailCard.querySelectorAll(".search-key"));
         dom.searchNativeInput = dom.detailCard.querySelector("#movieSearchNativeInput");
@@ -8322,12 +8277,8 @@
     }
 
     function renderSeriesPosterDetail(item, title, image, plot) {
-        if (isSeriesSeasonBrowserPage()) {
-            return renderSeriesSeasonDetail(item, title, image);
-        }
-
-        if (isSeriesEpisodeBrowserPage()) {
-            return renderSeriesEpisodeDetail(item, title, image);
+        if (isSeriesSeasonBrowserPage() || isSeriesEpisodeBrowserPage()) {
+            return renderSeriesBrowserPage(item, title, image);
         }
 
         const detailState = catalogItemDetailState(item);
@@ -8403,268 +8354,186 @@
         );
     }
 
-    function renderSeriesSeasonDetail(item, title, image) {
+    // Temporadas e episodios numa pagina so (1.4.7), como nos apps de streaming: cabecalho
+    // curto com capa e titulo, temporadas numa coluna a esquerda e os episodios ocupando o
+    // resto da tela. Antes as temporadas ficavam espremidas embaixo da capa (so 2 a 3
+    // apareciam) e a lista de episodios mostrava um e meio. Cima/baixo trocam a temporada
+    // e a lista de episodios muda na hora; direita ou OK entram nos episodios.
+    function renderSeriesBrowserPage(item, title, image) {
         const detailState = catalogItemDetailState(item);
         const detail = catalogDetailData(item);
-        const selectedSeason = currentSeriesSeason(item);
-        const actions = posterCatalogDetailActions();
+        const loading = Boolean(detailState && detailState.loading && !detail);
         const seasons = seriesSeasonEntries(item);
-        const totalEpisodes = seasons.reduce(function (count, season) {
-            return count + seriesEpisodesForSeason(item, season.season_number).length;
-        }, 0);
-        const summaryTitle = firstNonEmpty(selectedSeason && selectedSeason.name, "Temporadas");
-        const summaryCopy = firstNonEmpty(
-            selectedSeason && (selectedSeason.description || selectedSeason.plot),
-            detailState && detailState.loading && !detail
-                ? "Carregando temporadas..."
-                : "Escolha a temporada que deseja abrir."
-        );
-        const tags = [];
-
-        if (seasons.length) tags.push(seasons.length + (seasons.length === 1 ? " temporada" : " temporadas"));
-        if (totalEpisodes) tags.push(totalEpisodes + (totalEpisodes === 1 ? " episodio" : " episodios"));
-
-        return (
-            '<div class="poster-detail-shell series-detail-shell seasons">' +
-            '<div class="poster-detail-art">' +
-            '<img aria-hidden="true" role="presentation" class="detail-poster poster-detail-poster" src="' +
-            escapeHtml(image) +
-            '" alt="' +
-            escapeHtml(title) +
-            '">' +
-            "</div>" +
-            '<div class="poster-detail-copy series-detail-copy">' +
-            '<p class="poster-detail-eyebrow">Temporadas</p>' +
-            '<p class="card-title poster-detail-title">' +
-            escapeHtml(title) +
-            "</p>" +
-            (tags.length
-                ? '<div class="detail-tags">' +
-                  tags
-                      .map(function (tag) {
-                          return '<span class="tag">' + escapeHtml(tag) + "</span>";
-                      })
-                      .join("") +
-                  "</div>"
-                : "") +
-            '<div class="series-browser-selected">' +
-            '<p class="series-browser-selected-title">' +
-            escapeHtml(summaryTitle) +
-            "</p>" +
-            '<p class="series-browser-selected-copy">' +
-            escapeHtml(summaryCopy) +
-            "</p></div>" +
-            '<div class="poster-detail-actions">' +
-            actions
-                .map(function (action) {
-                    return (
-                        '<button aria-hidden="true" role="presentation" tabindex="-1" class="catalog-action' +
-                        (action.kind ? " " + escapeHtml(action.kind) : "") +
-                        '" type="button">' +
-                        '<span class="catalog-action-title">' +
-                        escapeHtml(action.title) +
-                        "</span>" +
-                        '<span class="catalog-action-copy">' +
-                        escapeHtml(action.subtitle) +
-                        "</span></button>"
-                    );
-                })
-                .join("") +
-            "</div>" +
-            renderSeriesSeasonBrowser(item, detailState, detail) +
-            "</div></div>"
-        );
-    }
-
-    function renderSeriesEpisodeDetail(item, title, image) {
-        const detailState = catalogItemDetailState(item);
-        const detail = catalogDetailData(item);
-        const selectedSeason = currentSeriesSeason(item);
-        const selectedEpisode = currentSeriesEpisode(item);
-        const selectedEpisodeEntry = selectedEpisode ? playbackEntryForItem(selectedEpisode, "series") : null;
-        const selectedEpisodeLabel = selectedEpisode
-            ? formatEpisodeLabel(
-                  selectedEpisode.season_number || selectedEpisode.season,
-                  selectedEpisode.episode_number || selectedEpisode.episode_num
-              )
-            : "";
-        const seasonCount = seriesSeasonEntries(item).length;
-        const episodeCount = currentSeriesSeasonEpisodes(item).length;
-        const summaryTitle = selectedEpisode
-            ? firstNonEmpty(
-                  selectedEpisodeLabel
-                      ? selectedEpisodeLabel + " | " + firstNonEmpty(selectedEpisode.title, selectedEpisode.name, "Episodio")
-                      : firstNonEmpty(selectedEpisode.title, selectedEpisode.name, "Episodio"),
-                  "Episodio selecionado"
-              )
-            : firstNonEmpty(selectedSeason && selectedSeason.name, "Temporadas");
-        const summaryCopy = firstNonEmpty(
-            selectedEpisode && (selectedEpisode.plot || selectedEpisode.description),
-            selectedSeason && (selectedSeason.plot || selectedSeason.description),
-            detailState && detailState.loading && !detail
-                ? "Carregando temporadas e episodios..."
-                : "O episodio destacado ja fica pronto para assistir ao pressionar Enter."
-        );
-        const tags = [];
-
-        if (selectedSeason && selectedSeason.name) tags.push(selectedSeason.name);
-        if (selectedEpisodeEntry && playbackResumeAllowed(selectedEpisodeEntry)) {
-            tags.push("Retomar em " + formatPlaybackTime(playbackEntryPosition(selectedEpisodeEntry)));
-        }
-        if (seasonCount) tags.push(seasonCount + (seasonCount === 1 ? " temporada" : " temporadas"));
-        if (episodeCount) tags.push(episodeCount + (episodeCount === 1 ? " episodio nesta temporada" : " episodios nesta temporada"));
-
-        return (
-            '<div class="poster-detail-shell series-detail-shell episodes">' +
-            '<div class="poster-detail-art">' +
-            '<img aria-hidden="true" role="presentation" class="detail-poster poster-detail-poster" src="' +
-            escapeHtml(image) +
-            '" alt="' +
-            escapeHtml(title) +
-            '">' +
-            "</div>" +
-            '<div class="poster-detail-copy series-detail-copy">' +
-            '<p class="poster-detail-eyebrow">Temporadas e episodios</p>' +
-            '<p class="card-title poster-detail-title">' +
-            escapeHtml(title) +
-            "</p>" +
-            (tags.length
-                ? '<div class="detail-tags">' +
-                  tags
-                      .map(function (tag) {
-                          return '<span class="tag">' + escapeHtml(tag) + "</span>";
-                      })
-                      .join("") +
-                  "</div>"
-                : "") +
-            '<div class="series-browser-selected">' +
-            '<p class="series-browser-selected-title">' +
-            escapeHtml(summaryTitle) +
-            "</p>" +
-            '<p class="series-browser-selected-copy">' +
-            escapeHtml(summaryCopy) +
-            "</p></div>" +
-            renderSeriesEpisodeBrowser(item, detailState, detail) +
-            "</div></div>"
-        );
-    }
-
-    function renderSeriesSeasonBrowser(item, detailState, detail) {
-        if (detailState && detailState.loading && !detail) {
-            return '<div class="series-browser-empty">Carregando temporadas...</div>';
-        }
-
-        const seasons = seriesSeasonEntries(item);
-        if (!seasons.length) {
-            return '<div class="series-browser-empty">Ainda nao encontramos temporadas para esta serie.</div>';
-        }
-
-        return (
-            '<div class="series-browser-shell">' +
-            '<div class="series-browser-head">' +
-            '<p class="series-browser-title">Temporadas</p>' +
-            '<p class="series-browser-copy">Escolha a temporada para abrir a lista de episodios.</p>' +
-            "</div>" +
-            '<div class="series-season-list">' +
-            seasons
-                .map(function (season, index) {
-                    const seasonNumber = normalizeSeriesNumber(season.season_number);
-                    const episodeCount = seriesEpisodesForSeason(item, seasonNumber).length;
-                    const seasonCopy = firstNonEmpty(
-                        season.description,
-                        season.plot,
-                        episodeCount ? episodeCount + (episodeCount === 1 ? " episodio" : " episodios") : "Sem episodios"
-                    );
-                    return (
-                        '<div class="series-season-chip' +
-                        (index === state.catalog.seriesDetailSeasonIndex ? " is-selected" : "") +
-                        '">' +
-                        '<span class="series-season-title">' +
-                        escapeHtml(firstNonEmpty(season.name, seasonNumber ? "Temporada " + seasonNumber : "Temporada")) +
-                        "</span>" +
-                        '<span class="series-season-copy">' +
-                        escapeHtml(trimText(seasonCopy, 92)) +
-                        "</span></div>"
-                    );
-                })
-                .join("") +
-            "</div></div>"
-        );
-    }
-
-    function renderSeriesEpisodeBrowser(item, detailState, detail) {
-        if (detailState && detailState.loading && !detail) {
-            return '<div class="series-browser-empty">Carregando episodios...</div>';
-        }
-
         const selectedSeason = currentSeriesSeason(item);
         const selectedSeasonNumber = selectedSeason ? normalizeSeriesNumber(selectedSeason.season_number) : 0;
         const episodes = currentSeriesSeasonEpisodes(item);
+        const naListaDeEpisodios = state.catalog.seriesDetailFocusZone === "episodes";
+        const totalEpisodes = seasons.reduce(function (count, season) {
+            return count + seriesEpisodesForSeason(item, season.season_number).length;
+        }, 0);
+        const tags = [];
+
+        if (catalogDetailRating(item)) tags.push("Nota " + catalogDetailRating(item));
+        if (seasons.length) tags.push(seasons.length + (seasons.length === 1 ? " temporada" : " temporadas"));
+        if (totalEpisodes) tags.push(totalEpisodes + (totalEpisodes === 1 ? " episodio" : " episodios"));
+        if (isItemFavorited(item)) tags.push("Favorita");
+
+        const nomeDaTemporada = function (season) {
+            const numero = normalizeSeriesNumber(season && season.season_number);
+            return firstNonEmpty(season && season.name, numero ? "Temporada " + numero : "Temporada");
+        };
+
+        let colunaTemporadas;
+        if (loading) {
+            colunaTemporadas = '<div class="series-browser-empty">Carregando temporadas...</div>';
+        } else if (!seasons.length) {
+            colunaTemporadas = '<div class="series-browser-empty">Ainda nao encontramos temporadas para esta serie.</div>';
+        } else {
+            colunaTemporadas =
+                '<div class="series-season-list">' +
+                seasons
+                    .map(function (season, index) {
+                        const quantos = seriesEpisodesForSeason(item, normalizeSeriesNumber(season.season_number)).length;
+                        return (
+                            '<div class="series-season-chip' +
+                            (index === state.catalog.seriesDetailSeasonIndex ? " is-selected" : "") +
+                            '">' +
+                            '<span class="series-season-title">' +
+                            escapeHtml(nomeDaTemporada(season)) +
+                            "</span>" +
+                            '<span class="series-season-copy">' +
+                            escapeHtml(quantos ? quantos + (quantos === 1 ? " episodio" : " episodios") : "Sem episodios") +
+                            "</span></div>"
+                        );
+                    })
+                    .join("") +
+                "</div>";
+        }
+
+        let listaEpisodios;
+        if (loading) {
+            listaEpisodios = '<div class="series-browser-empty">Carregando episodios...</div>';
+        } else if (!episodes.length) {
+            listaEpisodios = '<div class="series-browser-empty">Nenhum episodio disponivel nesta temporada.</div>';
+        } else {
+            listaEpisodios =
+                '<div class="series-episode-list">' +
+                episodes
+                    .map(function (episode, index) {
+                        const episodeLabel = formatEpisodeLabel(
+                            episode.season_number || episode.season,
+                            episode.episode_number || episode.episode_num
+                        );
+                        const playbackEntry = playbackEntryForItem(episode, "series");
+                        const canResume = playbackResumeAllowed(playbackEntry);
+                        const releaseLabel = formatDate(episode.releaseDate);
+                        const metaParts = [];
+                        if (releaseLabel !== "Sem data") metaParts.push(releaseLabel);
+                        if (canResume) metaParts.push("Retomar em " + formatPlaybackTime(playbackEntryPosition(playbackEntry)));
+                        return (
+                            '<div class="series-episode-card' +
+                            (index === state.catalog.seriesDetailEpisodeIndex ? " is-selected" : "") +
+                            '">' +
+                            '<img aria-hidden="true" role="presentation" class="series-episode-thumb" src="' +
+                            escapeHtml(firstNonEmpty(episode.stream_icon, episode.cover, catalogDetailImage(item))) +
+                            '" alt="">' +
+                            '<div class="series-episode-copy">' +
+                            '<div class="series-episode-kicker">' +
+                            (episodeLabel ? '<span class="series-episode-chip">' + escapeHtml(episodeLabel) + "</span>" : "") +
+                            (canResume ? '<span class="series-episode-chip resume">Retomar</span>' : "") +
+                            "</div>" +
+                            '<p class="series-episode-title">' +
+                            escapeHtml(firstNonEmpty(episode.title, episode.name, episodeLabel ? "Episodio " + episodeLabel : "Episodio")) +
+                            "</p>" +
+                            (metaParts.length ? '<p class="series-episode-meta">' + escapeHtml(metaParts.join(" | ")) + "</p>" : "") +
+                            '<p class="series-episode-description">' +
+                            escapeHtml(trimText(firstNonEmpty(episode.plot, episode.description, "Sem sinopse para este episodio."), 220)) +
+                            "</p></div></div>"
+                        );
+                    })
+                    .join("") +
+                "</div>";
+        }
 
         return (
-            '<div class="series-browser-shell">' +
-            '<div class="series-browser-head episodes">' +
-            '<p class="series-browser-title">Episodios</p>' +
-            '<p class="series-browser-copy">' +
-            escapeHtml(
-                selectedSeasonNumber
-                    ? "Temporada " + selectedSeasonNumber + " com " + episodes.length + (episodes.length === 1 ? " episodio" : " episodios")
-                    : "Nenhuma temporada selecionada"
-            ) +
-            "</p></div>" +
-            (episodes.length
-                ? '<div class="series-episode-list">' +
-                  episodes
-                      .map(function (episode, index) {
-                          const episodeLabel = formatEpisodeLabel(episode.season_number || episode.season, episode.episode_number || episode.episode_num);
-                          const playbackEntry = playbackEntryForItem(episode, "series");
-                          const canResume = playbackResumeAllowed(playbackEntry);
-                          const releaseLabel = formatDate(episode.releaseDate);
-                          const metaParts = [];
-                          if (releaseLabel !== "Sem data") {
-                              metaParts.push(releaseLabel);
-                          }
-                          if (canResume) {
-                              metaParts.push("Retomar em " + formatPlaybackTime(playbackEntryPosition(playbackEntry)));
-                          } else {
-                              metaParts.push("Pronto para assistir");
-                          }
-                          return (
-                              '<div class="series-episode-card' +
-                              (index === state.catalog.seriesDetailEpisodeIndex ? " is-selected" : "") +
-                              '">' +
-                              '<img aria-hidden="true" role="presentation" class="series-episode-thumb" src="' +
-                              escapeHtml(firstNonEmpty(episode.stream_icon, episode.cover, catalogDetailImage(item))) +
-                              '" alt="' +
-                              escapeHtml(firstNonEmpty(episode.title, episode.name, "Episodio")) +
-                              '">' +
-                              '<div class="series-episode-copy">' +
-                              '<div class="series-episode-kicker">' +
-                              (episodeLabel
-                                  ? '<span class="series-episode-chip">' + escapeHtml(episodeLabel) + "</span>"
-                                  : "") +
-                              (canResume
-                                  ? '<span class="series-episode-chip resume">Retomar</span>'
-                                  : "") +
-                              "</div>" +
-                              '<p class="series-episode-title">' +
-                              escapeHtml(
-                                  firstNonEmpty(episode.title, episode.name, episodeLabel ? "Episodio " + episodeLabel : "Episodio")
-                              ) +
-                              "</p>" +
-                              '<p class="series-episode-meta">' +
-                              escapeHtml(metaParts.join(" | ")) +
-                              "</p>" +
-                              '<p class="series-episode-description">' +
-                              escapeHtml(trimText(firstNonEmpty(episode.plot, episode.description, "Abra para ver a sinopse deste episodio."), 220)) +
-                              "</p></div></div>"
-                          );
+            '<div class="series-page">' +
+            '<div class="series-page-head">' +
+            '<img aria-hidden="true" role="presentation" class="series-page-poster" src="' +
+            escapeHtml(image) +
+            '" alt="">' +
+            '<div class="series-page-info">' +
+            '<p class="series-page-eyebrow">Temporadas e episodios</p>' +
+            '<p class="series-page-title">' +
+            escapeHtml(title) +
+            "</p>" +
+            (tags.length
+                ? '<div class="series-page-tags">' +
+                  tags
+                      .map(function (tag) {
+                          return '<span class="tag">' + escapeHtml(tag) + "</span>";
                       })
                       .join("") +
                   "</div>"
-                : '<div class="series-browser-empty small">Nenhum episodio disponivel nesta temporada.</div>') +
-            "</div>"
+                : "") +
+            "</div></div>" +
+            '<div class="series-page-body">' +
+            '<div class="series-page-seasons' +
+            (naListaDeEpisodios ? "" : " is-active") +
+            '">' +
+            '<div class="series-page-col-head"><p class="series-page-col-title">Temporadas</p></div>' +
+            colunaTemporadas +
+            "</div>" +
+            '<div class="series-page-episodes' +
+            (naListaDeEpisodios ? " is-active" : "") +
+            '">' +
+            '<div class="series-page-col-head">' +
+            '<p class="series-page-col-title">' +
+            escapeHtml(selectedSeason ? nomeDaTemporada(selectedSeason) : "Episodios") +
+            (episodes.length ? '<span class="series-page-col-count">' + episodes.length + (episodes.length === 1 ? " episodio" : " episodios") + "</span>" : "") +
+            "</p>" +
+            '<p class="series-page-col-hint">' +
+            escapeHtml(
+                naListaDeEpisodios
+                    ? "OK para assistir  |  Esquerda volta para as temporadas"
+                    : selectedSeasonNumber || seasons.length
+                      ? "Direita ou OK para escolher o episodio"
+                      : ""
+            ) +
+            "</p></div>" +
+            listaEpisodios +
+            "</div></div></div>"
         );
+    }
+
+    // A pagina e redesenhada a cada tecla; sem isto as listas voltavam ao topo e o item
+    // escolhido podia ficar fora da tela.
+    let rolagemDasSeries = null;
+    function guardarRolagemDasSeries() {
+        if (!dom.detailCard) return;
+        const temporadas = dom.detailCard.querySelector(".series-page .series-season-list");
+        const episodios = dom.detailCard.querySelector(".series-page .series-episode-list");
+        if (!temporadas && !episodios) {
+            rolagemDasSeries = null;
+            return;
+        }
+        rolagemDasSeries = {
+            serie: state.catalog.seriesDetailSeriesId,
+            temporada: rolagemDasSeries && rolagemDasSeries.temporadaAtual,
+            temporadas: temporadas ? temporadas.scrollTop : 0,
+            episodios: episodios ? episodios.scrollTop : 0,
+        };
+    }
+    function restaurarRolagemDasSeries() {
+        if (!dom.detailCard) return;
+        const temporadas = dom.detailCard.querySelector(".series-page .series-season-list");
+        const episodios = dom.detailCard.querySelector(".series-page .series-episode-list");
+        const antes = rolagemDasSeries;
+        const temporadaAtual = state.catalog.seriesDetailSeasonIndex;
+        if (antes && antes.serie === state.catalog.seriesDetailSeriesId) {
+            if (temporadas) temporadas.scrollTop = antes.temporadas;
+            if (episodios && antes.temporada === temporadaAtual) episodios.scrollTop = antes.episodios;
+        }
+        rolagemDasSeries = temporadas || episodios ? { serie: state.catalog.seriesDetailSeriesId, temporadaAtual: temporadaAtual } : null;
     }
 
     function detailKeyFor(item) {
@@ -10986,14 +10855,7 @@
         } else {
             const resumeEntry = seriesResumeEntryForSeries(item);
             const resumeLabel = formatEpisodeLabelFromEntry(resumeEntry);
-            if (isSeriesSeasonBrowserPage()) {
-                actions.push({
-                    id: "series-back",
-                    title: "Voltar",
-                    subtitle: "Retorna para os detalhes da serie.",
-                    kind: "secondary",
-                });
-            } else if (!isSeriesEpisodeBrowserPage()) {
+            if (!isSeriesSeasonBrowserPage() && !isSeriesEpisodeBrowserPage()) {
                 if (playbackResumeAllowed(resumeEntry)) {
                     actions.push({
                         id: "series-continue",
@@ -11713,11 +11575,16 @@
                 return;
             }
 
-            const containerRect = container.getBoundingClientRect();
-            const nodeRect = node.getBoundingClientRect();
+            // 1.4.7: offsetTop em vez de getBoundingClientRect. O app inteiro e escalado
+            // (--app-escala) e as medidas da tela vinham encolhidas, enquanto scrollTop nao:
+            // fora de 1920x1080 o episodio escolhido saia da area visivel.
             const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
-            const nodeTop = nodeRect.top - containerRect.top + container.scrollTop;
-            const nodeBottom = nodeTop + nodeRect.height;
+            let nodeTop = node.offsetTop;
+            if (node.offsetParent !== container) {
+                const escala = node.getBoundingClientRect().height / (node.offsetHeight || 1) || 1;
+                nodeTop = (node.getBoundingClientRect().top - container.getBoundingClientRect().top) / escala + container.scrollTop;
+            }
+            const nodeBottom = nodeTop + node.offsetHeight;
             const comfortTop = container.scrollTop + 18;
             const comfortBottom = container.scrollTop + container.clientHeight - 28;
             let nextScrollTop = container.scrollTop;

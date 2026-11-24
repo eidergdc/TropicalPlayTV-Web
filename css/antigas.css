@@ -193,12 +193,7 @@ html.sem-grid .catalog-screen[data-variant="poster"] .poster-detail-actions > * 
 html.sem-grid .catalog-screen[data-variant="poster"][data-view="detail"] .poster-detail-actions > * { flex-basis: 320px; }
 html.sem-grid .catalog-screen[data-variant="poster"] .poster-detail-actions > * + * { margin-left: 14px; }
 
-/* Series: temporadas em 3 colunas, episodio com imagem + texto. */
-html.sem-grid .series-season-list { display: flex; flex-wrap: wrap; margin: 0 -6px; }
-html.sem-grid .series-season-list > * { width: calc(33.333% - 12px); margin: 0 6px 12px; }
-html.sem-grid .series-episode-card { display: flex; }
-html.sem-grid .series-episode-card > :first-child { flex: 0 0 250px; }
-html.sem-grid .series-episode-card > :last-child { flex: 1 1 0; min-width: 0; margin-left: 18px; }
+/* Series: a pagina de temporadas e episodios (1.4.7) ja e montada com flex e margens. */
 
 /* Teclados da busca (6 colunas) e da entrada de conteudo (8 colunas). */
 html.sem-grid .search-keyboard,
