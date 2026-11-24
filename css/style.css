@@ -491,6 +491,7 @@ body[data-player-engine="avplay"] {
 }
 
 .login-panel {
+    width: 860px;
     width: min(860px, calc(86 * var(--vw, 1vw)));
     min-height: 640px;
     padding: 34px 34px 30px;
@@ -1066,6 +1067,7 @@ body[data-player-engine="avplay"] {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    gap: 194px;
     gap: clamp(160px, calc(18 * var(--vh, 1vh)), 220px);
     padding: 4px 0 12px;
 }
@@ -1074,8 +1076,11 @@ body[data-player-engine="avplay"] {
     display: grid;
     grid-template-columns: repeat(3, minmax(340px, 404px));
     justify-content: center;
+    grid-gap: 32px;
     gap: 32px;
     min-height: 0;
+    width: 100%;
+    max-width: 1476px;
     width: min(1476px, 100%);
     margin: 0 auto;
 }
@@ -1084,13 +1089,17 @@ body[data-player-engine="avplay"] {
     display: grid;
     grid-template-columns: repeat(4, minmax(244px, 320px));
     justify-content: center;
+    grid-gap: 32px;
     gap: 32px;
+    width: 100%;
+    max-width: 1352px;
     width: min(1352px, 100%);
     margin: 0 auto;
     padding-top: 18px;
 }
 
 .home-card {
+    min-height: 583px;
     min-height: clamp(500px, calc(54 * var(--vh, 1vh)), 590px);
     padding: 42px 30px;
     display: flex;
@@ -2606,6 +2615,7 @@ body[data-player-engine="avplay"] {
 }
 
 .network-dialog {
+    width: 760px;
     width: min(760px, calc(calc(100 * var(--vw, 1vw)) - 90px));
     padding: 36px 40px 32px;
     border-radius: 30px;
@@ -2659,6 +2669,7 @@ body[data-player-engine="avplay"] {
 }
 
 .session-dialog {
+    width: 820px;
     width: min(820px, calc(calc(100 * var(--vw, 1vw)) - 90px));
     padding: 36px 40px 32px;
     border-radius: 30px;
@@ -2720,6 +2731,7 @@ body[data-player-engine="avplay"] {
 }
 
 .exit-dialog {
+    width: 720px;
     width: min(720px, calc(calc(100 * var(--vw, 1vw)) - 90px));
     padding: 36px 40px 32px;
     border-radius: 30px;
@@ -2796,6 +2808,7 @@ body[data-player-engine="avplay"] {
 }
 
 .resume-dialog {
+    width: 760px;
     width: min(760px, calc(calc(100 * var(--vw, 1vw)) - 80px));
     padding: 34px 38px 30px;
     border-radius: 30px;
@@ -2807,6 +2820,7 @@ body[data-player-engine="avplay"] {
 }
 
 .search-dialog {
+    width: 1080px;
     width: min(1080px, calc(calc(100 * var(--vw, 1vw)) - 92px));
     max-height: calc(calc(100 * var(--vh, 1vh)) - 88px);
     overflow-y: auto;
@@ -2822,6 +2836,7 @@ body[data-player-engine="avplay"] {
 }
 
 .media-input-dialog {
+    width: 1180px;
     width: min(1180px, calc(calc(100 * var(--vw, 1vw)) - 92px));
     margin: 0 auto;
     padding: 34px 38px 30px;
@@ -3281,6 +3296,7 @@ body[data-player-engine="avplay"] {
 }
 
 .player-meta-row h2 {
+    max-width: 920px;
     max-width: min(calc(64 * var(--vw, 1vw)), 920px);
     font-size: 1.68rem;
     color: #fff;
@@ -3330,6 +3346,7 @@ body[data-player-engine="avplay"] {
 }
 
 .player-recovery-card {
+    width: 860px;
     width: min(860px, calc(calc(100 * var(--vw, 1vw)) - 88px));
     padding: 34px 38px 32px;
     border-radius: 30px;
@@ -3859,6 +3876,17 @@ html .catalog-screen .catalog-lupa.is-focused .catalog-lupa-icone {
 html .catalog-screen .catalog-lupa.is-focused .catalog-lupa-icone svg {
     stroke: #ffffff;
 }
+
+/* TVs com navegador que tem Grid mas nao tem "gap" em flex (Chrome 57 a 83 - Samsung de
+   2019/2020, Tizen 5.x). Ali o antigas.css nao carrega (ele e so para quem nao tem Grid)
+   e o clamp()/min() tambem nao existem: os cartoes do inicio ficavam so com a altura do
+   conteudo, sem espaco entre icone, titulo e texto - "achatados". As alturas e larguras
+   ganharam valor fixo de reserva acima de cada clamp/min; os espacos viram margens aqui.
+   O main.js marca o <html> com "sem-gap-flex" quando o navegador nao faz gap em flex. */
+html.sem-gap-flex .fire-home-main > * + * { margin-top: 194px; }
+html.sem-gap-flex .home-card > * + * { margin-top: 36px; }
+html.sem-gap-flex .home-card-top > * + * { margin-top: 34px; }
+html.sem-gap-flex .home-card-body > * + * { margin-top: 22px; }
 
 /* Aviso de vencimento / renovar acesso com QR (1.5.5). */
 html .renovacao-overlay { z-index: 10038; }

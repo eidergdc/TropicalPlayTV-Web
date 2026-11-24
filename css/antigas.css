@@ -40,7 +40,7 @@ html.sem-grid .search-dialog { width: 1080px; }
 html.sem-grid .media-input-dialog { width: 1180px; }
 html.sem-grid .player-recovery-card { width: 860px; }
 html.sem-grid .player-meta-row h2 { max-width: 920px; }
-html.sem-grid .home-card { min-height: 560px; }
+html.sem-grid .home-card { min-height: 583px; }
 
 /* "gap" em flex: margens. */
 html.sem-grid .login-layout > * + * { margin-top: 18px; }

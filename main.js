@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.5.5";
+    const APP_VERSION = "1.5.6";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -283,6 +283,25 @@
     // Os codigos de acesso tem no maximo 9 digitos (1.5.4): um digito a mais deixava o
     // cliente sem entrar e parecia problema no cadastro.
     const CODIGO_MAXIMO = 9;
+
+    // Navegador sem "gap" em flex (Chrome < 84, Samsung de 2019/2020): marca o <html> para
+    // o style.css usar margens no lugar (ver "sem-gap-flex"). Mede uma coluna com gap de 1px.
+    (function detectarGapEmFlex() {
+        try {
+            const caixa = document.createElement("div");
+            caixa.style.cssText = "display:flex;flex-direction:column;row-gap:1px;position:absolute;visibility:hidden;left:-99px;top:0";
+            caixa.appendChild(document.createElement("div"));
+            caixa.appendChild(document.createElement("div"));
+            (document.body || document.documentElement).appendChild(caixa);
+            const temGap = caixa.scrollHeight === 1;
+            caixa.parentNode.removeChild(caixa);
+            if (!temGap) {
+                document.documentElement.classList.add("sem-gap-flex");
+            }
+        } catch (error) {
+            console.log("Flex gap check skipped:", error);
+        }
+    })();
     const DIRECT_PLAYER_PROFILE = {
         userNumber: DEMO_CODE,
         paymentStatus: true,
