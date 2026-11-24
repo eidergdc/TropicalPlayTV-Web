@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.1">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.5.2">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -14,7 +14,7 @@
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.1">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/antigas.css?v=1.5.2">');
     })();
     </script>
     <style>
@@ -110,7 +110,7 @@
     <script src="lib/firebase-firestore.js"></script>
     <script src="lib/hls.min.js"></script>
     <script src="lib/mpegts.js"></script>
-    <script src="./main.js?v=1.5.1" defer></script>
+    <script src="./main.js?v=1.5.2" defer></script>
 </head>
 <body>
     <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
@@ -399,6 +399,10 @@
                                 <h2 role="presentation" id="catalogTitle"></h2>
                             </div>
                             <p class="panel-subtitle" id="catalogHint"></p>
+                        </div>
+                        <div class="catalog-lupa hidden" id="catalogLupa">
+                            <span class="catalog-lupa-icone" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg></span>
+                            <span class="catalog-lupa-texto"><span class="catalog-lupa-titulo" id="catalogLupaTitulo">Pesquisar</span><span class="catalog-lupa-sub">Busca em todas as categorias</span></span>
                         </div>
                         <div class="category-list" id="categoryList"></div>
                     </aside>

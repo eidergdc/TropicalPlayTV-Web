@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.5.1";
+    const APP_VERSION = "1.5.2";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -449,6 +449,7 @@
             detailActionIndex: 0,
             detailKey: "",
             movieSearchQuery: "",
+            lupaFocada: false,
             movieSearchCacheKey: "",
             movieSearchCacheItems: [],
             movieSearchIndexKey: "",
@@ -853,6 +854,8 @@
         dom.catalogTitle = document.getElementById("catalogTitle");
         dom.catalogHint = document.getElementById("catalogHint");
         dom.categoryList = document.getElementById("categoryList");
+        dom.catalogLupa = document.getElementById("catalogLupa");
+        dom.catalogLupaTitulo = document.getElementById("catalogLupaTitulo");
         dom.itemList = document.getElementById("itemList");
         dom.detailCard = document.getElementById("detailCard");
         dom.loadingOverlay = document.getElementById("loadingOverlay");
@@ -1089,7 +1092,12 @@
             state.settingsIndex = i;
             syncSettingsFocus();
         },
+        catalogLupa: function () {
+            abrirPesquisaEmTodos();
+            return true;
+        },
         catalogCategories: function (i) {
+            state.catalog.lupaFocada = false;
             state.catalog.zone = "categories";
             state.catalog.categoryIndex = i;
             if (catalogUsesSelectionModel()) {
@@ -1103,6 +1111,7 @@
             return true;
         },
         catalogItems: function (i) {
+            state.catalog.lupaFocada = false;
             state.catalog.zone = "items";
             state.catalog.itemIndex = (state.catalog.itemWindowStartIndex || 0) + i;
             syncCatalogFocus();
@@ -2401,8 +2410,26 @@
                 return;
             }
 
+            // Lupa no alto da coluna (1.5.2): fica acima da primeira categoria.
+            if (state.catalog.lupaFocada) {
+                event.preventDefault();
+                if (action.type === "down") {
+                    state.catalog.lupaFocada = false;
+                    state.catalog.categoryIndex = 0;
+                    syncCatalogFocus();
+                } else if (action.type === "enter" || action.type === "right") {
+                    abrirPesquisaEmTodos();
+                }
+                return;
+            }
+
             if (action.type === "up") {
                 event.preventDefault();
+                if (state.catalog.categoryIndex === 0 && lupaDoCatalogoAtiva()) {
+                    state.catalog.lupaFocada = true;
+                    syncCatalogFocus();
+                    return;
+                }
                 state.catalog.categoryIndex = state.catalog.categoryIndex > 0 ? state.catalog.categoryIndex - 1 : categories.length - 1;
                 syncCatalogFocus();
                 return;
@@ -3778,6 +3805,7 @@
         }
         state.catalog.type = type;
         state.catalog.zone = "categories";
+        state.catalog.lupaFocada = false;
         state.catalog.view = "browse";
         state.catalog.categoryIndex = initialCategoryIndex;
         state.catalog.itemIndex = 0;
@@ -7542,8 +7570,17 @@
             state.catalog.zone === "categories" ? state.catalog.categoryIndex : catalogDisplayCategoryIndex();
         const itemVisibleIndex = catalogVisibleItemIndex();
 
-        setFocusedState(dom.categoryNodes, state.catalog.categoryIndex, state.catalog.zone === "categories", "catalogCategories");
+        const lupaComFoco = Boolean(state.catalog.lupaFocada && state.catalog.zone === "categories" && lupaDoCatalogoAtiva());
+        setFocusedState(
+            dom.categoryNodes,
+            state.catalog.categoryIndex,
+            state.catalog.zone === "categories" && !lupaComFoco,
+            "catalogCategories"
+        );
         setFocusedState(dom.itemNodes, itemVisibleIndex, state.catalog.zone === "items", "catalogItems");
+        if (dom.catalogLupa) {
+            setFocusedState([dom.catalogLupa], 0, lupaComFoco, "catalogLupa");
+        }
         setFocusedState(dom.catalogDetailActionNodes, state.catalog.detailActionIndex, false, "catalogDetailActions");
         setFocusedState(dom.seriesSeasonNodes, state.catalog.seriesDetailSeasonIndex, false, "seriesSeasons");
         setFocusedState(dom.seriesEpisodeNodes, state.catalog.seriesDetailEpisodeIndex, false, "seriesEpisodes");
@@ -7944,6 +7981,16 @@
         }
         if (dom.catalogHint) {
             dom.catalogHint.textContent = posterLayout ? catalogSidebarHint(categories.length) : "";
+        }
+        if (dom.catalogLupa) {
+            const lupaAtiva = lupaDoCatalogoAtiva();
+            dom.catalogLupa.classList.toggle("hidden", !lupaAtiva);
+            if (!lupaAtiva) {
+                state.catalog.lupaFocada = false;
+            }
+            if (dom.catalogLupaTitulo) {
+                dom.catalogLupaTitulo.textContent = state.catalog.type === "series" ? "Pesquisar series" : "Pesquisar filmes";
+            }
         }
         if (dom.itemList) {
             dom.itemList.setAttribute("data-heading", posterLayout ? catalogPanelHeading(activeCategory) : "");
@@ -9603,7 +9650,7 @@
             '<h2 role="presentation">' +
             escapeHtml(searchTitle) +
             "</h2>" +
-            '<p class="panel-subtitle search-subtitle">Use o teclado da Samsung para digitar e pressione Voltar para sair da busca.</p>' +
+            '<p class="panel-subtitle search-subtitle">Digite o nome e pressione Voltar para ver os resultados de todas as categorias.</p>' +
             '<label class="search-native-field">' +
             '<span class="search-native-label">' +
             escapeHtml(labels.fieldLabel) +
@@ -11145,6 +11192,54 @@
 
     function isAllPosterCategoryId(type, categoryId) {
         return type === "series" ? isAllSeriesCategoryId(categoryId) : isAllMoviesCategoryId(categoryId);
+    }
+
+    // Lupa das telas de filmes e series (1.5.2): leva para a categoria "Todos" e abre a
+    // busca, que procura o nome em todas as categorias de uma vez.
+    function lupaDoCatalogoAtiva() {
+        return (state.catalog.type === "movies" || state.catalog.type === "series") && currentCategories().length > 0;
+    }
+
+    let abrindoPesquisa = false;
+    async function abrirPesquisaEmTodos() {
+        if (abrindoPesquisa) {
+            return;
+        }
+        const tipo = state.catalog.type;
+        const indiceDeTodos = currentCategories().findIndex(function (category) {
+            return isAllPosterCategoryId(tipo, category && category.category_id ? category.category_id : "");
+        });
+        if (indiceDeTodos < 0) {
+            showToast("A busca nao esta disponivel neste servidor.", "error");
+            return;
+        }
+
+        abrindoPesquisa = true;
+        try {
+            state.catalog.lupaFocada = false;
+            state.catalog.view = "browse";
+            state.catalog.zone = "items";
+            state.catalog.categoryIndex = indiceDeTodos;
+            state.catalog.selectedCategoryIndex = indiceDeTodos;
+            state.catalog.selectedItemCategoryIndex = indiceDeTodos;
+            state.catalog.itemIndex = 0;
+            state.catalog.itemWindowStartIndex = 0;
+            state.catalog.selectedItemIndex = 0;
+            state.catalog.detailKey = "";
+            clearMovieSearchQuery();
+            renderCatalogScreen();
+            await ensureItemsForCategoryIndex(indiceDeTodos);
+            // O cliente pode ter saido da tela enquanto a lista completa carregava.
+            if (state.screen !== "catalog" || state.catalog.type !== tipo || state.catalog.selectedCategoryIndex !== indiceDeTodos) {
+                return;
+            }
+            state.catalog.itemIndex = 0;
+            state.catalog.selectedItemIndex = 0;
+            renderCatalogScreen();
+            openMovieSearchOverlay();
+        } finally {
+            abrindoPesquisa = false;
+        }
     }
 
     function isSearchDetailView() {
