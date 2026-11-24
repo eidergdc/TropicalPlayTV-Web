@@ -3860,6 +3860,45 @@ html .catalog-screen .catalog-lupa.is-focused .catalog-lupa-icone svg {
     stroke: #ffffff;
 }
 
+/* Status de cada servidor na tela de escolha (1.5.4). */
+html .server-texto {
+    width: 100%;
+}
+html .server-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+html .server-ponto {
+    width: 14px;
+    height: 14px;
+    margin-right: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+}
+html .server-status.is-online { color: #8ee0a6; }
+html .server-status.is-online .server-ponto { background: #3ccf6e; box-shadow: 0 0 10px rgba(60, 207, 110, 0.8); }
+html .server-status.is-aviso,
+html .server-status.is-bloqueio { color: #ffc070; }
+html .server-status.is-aviso .server-ponto,
+html .server-status.is-bloqueio .server-ponto { background: #ffa83d; }
+html .server-status.is-vencido,
+html .server-status.is-erro { color: #ff8a8a; }
+html .server-status.is-vencido .server-ponto,
+html .server-status.is-erro .server-ponto { background: #ff5c5c; }
+html .server-status.is-fora { color: rgba(255, 255, 255, 0.72); }
+html .server-status.is-fora .server-ponto { background: #9aa3b2; }
+html .server-detalhe {
+    margin: 6px 0 0;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
 /* Configuracoes (1.5.3): vencimento do plano, controle parental e suporte com QR.
    Senha do controle parental: teclado de 3 colunas. So flex e margens (TVs antigas). */
 html .settings-row {

@@ -4,7 +4,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.5.3";
+    const APP_VERSION = "1.5.4";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -268,6 +268,9 @@
     ]);
 
     const DEMO_CODE = "1234";
+    // Os codigos de acesso tem no maximo 9 digitos (1.5.4): um digito a mais deixava o
+    // cliente sem entrar e parecia problema no cadastro.
+    const CODIGO_MAXIMO = 9;
     const DIRECT_PLAYER_PROFILE = {
         userNumber: DEMO_CODE,
         paymentStatus: true,
@@ -2983,8 +2986,8 @@
     }
 
     function appendDigit(digit) {
-        if (state.code.length >= 12) {
-            showToast("O codigo pode ter no maximo 12 digitos.", "error");
+        if (state.code.length >= CODIGO_MAXIMO) {
+            showToast("O codigo tem no maximo " + CODIGO_MAXIMO + " digitos.", "error");
             return;
         }
         state.code += digit;
@@ -3473,7 +3476,23 @@
         } catch (error) {
             hideLoading();
             console.log("Server select failed:", error);
-            showToast(error.message || "Falha ao conectar ao servidor selecionado.", "error");
+            // Diz o motivo provavel (vencido, bloqueio na internet...) em vez so do erro.
+            const resultado = await verificarServidor(server).catch(function () { return null; });
+            if (resultado && resultado.estado !== "online") {
+                showToast(resultado.rotulo + ". " + (resultado.detalhe || ""), "error");
+                try {
+                    const parsedFalho = parseServer(server);
+                    resultado.em = Date.now();
+                    statusDosServidores[chaveDoServidor(parsedFalho)] = resultado;
+                } catch (erroDoCadastro) {
+                    console.log("Server status cache skipped:", erroDoCadastro);
+                }
+                if (state.screen === "servers") {
+                    renderServerScreen();
+                }
+            } else {
+                showToast(error.message || "Falha ao conectar ao servidor selecionado.", "error");
+            }
         }
     }
 
@@ -7739,6 +7758,9 @@
     }
 
     function renderCodeScreen() {
+        if (state.code && state.code.length > CODIGO_MAXIMO) {
+            state.code = state.code.slice(0, CODIGO_MAXIMO);
+        }
         const masked = state.code ? state.code : '<span class="code-placeholder">Digite usando o teclado abaixo</span>';
         dom.codeDisplay.innerHTML = masked;
         if (dom.loginSessionNotice) {
@@ -7783,15 +7805,22 @@
 
         dom.serverList.innerHTML = servers
             .map(function (server) {
+                const status = statusDoServidorNaTela(server);
                 return (
                     '<div class="server-card">' +
+                    '<div class="server-texto">' +
                     '<p class="server-name">' +
                     escapeHtml(server.name || "Servidor") +
                     "</p>" +
-                    "</div>"
+                    '<p class="server-status is-' + escapeHtml(status.estado) + '"><span class="server-ponto"></span>' +
+                    escapeHtml(status.rotulo) +
+                    "</p>" +
+                    (status.detalhe ? '<p class="server-detalhe">' + escapeHtml(status.detalhe) + "</p>" : "") +
+                    "</div></div>"
                 );
             })
             .join("");
+        verificarServidoresDaTela();
         dom.serverNodes = Array.from(dom.serverList.querySelectorAll(".server-card"));
         syncServerFocus();
     }
@@ -11293,6 +11322,186 @@
         return type === "series" ? isAllSeriesCategoryId(categoryId) : isAllMoviesCategoryId(categoryId);
     }
 
+    // ---- Status dos servidores (1.5.4) -----------------------------------------------
+    // Na tela de escolher o servidor cada um mostra se esta online ou, quando nao entra,
+    // o motivo provavel: vencido, bloqueado/desativado no painel, telas em uso, possivel
+    // bloqueio na internet (Wi-Fi) ou servidor sem resposta. So "inativo" fazia o cliente
+    // achar que a Tropical desligou o servidor dele.
+    //
+    // Bloqueio na internet: o app pede direto ao painel; se nao chega, pede de novo pela
+    // ponte do Firebase (rota /msx/xapi). Se pela ponte o painel responde e esta ativo, o
+    // servidor esta no ar e quem barra e a rede do cliente.
+    const statusDosServidores = {};
+    const STATUS_VALIDO_MS = 90000;
+
+    function chaveDoServidor(parsed) {
+        return String(parsed.baseUrl || "") + "|" + String(parsed.username || "");
+    }
+
+    function dataCurta(ms) {
+        const d = new Date(ms);
+        return ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear();
+    }
+
+    async function pedirJsonComPrazo(url, prazoMs) {
+        const controle = typeof AbortController === "function" ? new AbortController() : null;
+        const corte = controle ? setTimeout(function () { controle.abort(); }, prazoMs) : null;
+        try {
+            const resposta = await fetch(url, {
+                method: "GET",
+                headers: { Accept: "application/json, text/plain, */*" },
+                signal: controle ? controle.signal : undefined,
+            });
+            let dados = null;
+            try {
+                dados = await resposta.json();
+            } catch (erroDoJson) {
+                dados = null;
+            }
+            return { status: resposta.status, ok: resposta.ok, dados: dados };
+        } finally {
+            if (corte) clearTimeout(corte);
+        }
+    }
+
+    function statusPelosDadosDoPainel(dados) {
+        const info = dados && dados.user_info;
+        if (!info) {
+            return { estado: "fora", rotulo: "Servidor sem resposta", detalhe: "O servidor respondeu de um jeito inesperado. Tente de novo em alguns minutos." };
+        }
+        if (String(info.auth) !== "1") {
+            return { estado: "erro", rotulo: "Usuario nao reconhecido", detalhe: "O servidor nao aceitou este usuario. Fale com o suporte para conferir." };
+        }
+        const status = String(info.status || "").toLowerCase();
+        const vence = Number(info.exp_date) > 0 ? Number(info.exp_date) * 1000 : 0;
+        if (status === "expired" || (vence && vence < Date.now())) {
+            return { estado: "vencido", rotulo: "Vencido", detalhe: vence ? "O acesso deste servidor venceu em " + dataCurta(vence) + "." : "O acesso deste servidor venceu." };
+        }
+        if (status === "banned") {
+            return { estado: "erro", rotulo: "Bloqueado pelo servidor", detalhe: "O proprio servidor bloqueou este acesso. Fale com o suporte." };
+        }
+        if (status === "disabled") {
+            return { estado: "erro", rotulo: "Desativado pelo servidor", detalhe: "O proprio servidor desativou este acesso. Fale com o suporte." };
+        }
+        if (status && status !== "active") {
+            return { estado: "aviso", rotulo: "Status: " + String(info.status), detalhe: "O servidor informou este status para o acesso." };
+        }
+        const emUso = Number(info.active_cons) || 0;
+        const maximo = Number(info.max_connections) || 0;
+        if (maximo > 0 && emUso >= maximo) {
+            return {
+                estado: "aviso",
+                rotulo: "Online - telas em uso (" + emUso + "/" + maximo + ")",
+                detalhe: "Todas as telas deste acesso estao sendo usadas. Feche em outro aparelho se nao abrir.",
+            };
+        }
+        return { estado: "online", rotulo: "Online", detalhe: "" };
+    }
+
+    async function verificarServidor(server) {
+        let parsed;
+        try {
+            parsed = parseServer(server);
+        } catch (error) {
+            return { estado: "erro", rotulo: "Cadastro incompleto", detalhe: "O endereco deste servidor esta incorreto. Fale com o suporte." };
+        }
+        if (parsed.isDemo) {
+            return { estado: "online", rotulo: "Online", detalhe: "" };
+        }
+        const url =
+            parsed.baseUrl +
+            "/player_api.php?username=" +
+            encodeURIComponent(parsed.username) +
+            "&password=" +
+            encodeURIComponent(parsed.password);
+
+        let diretoFalhou = false;
+        if (!pedidoMisto(url) && !usarPonteParaEsteServidor(url)) {
+            try {
+                const direto = await pedirJsonComPrazo(url, 9000);
+                if (direto.dados && direto.dados.user_info) {
+                    return statusPelosDadosDoPainel(direto.dados);
+                }
+                if (direto.status === 401 || direto.status === 403) {
+                    return { estado: "erro", rotulo: "Usuario nao reconhecido", detalhe: "O servidor nao aceitou este usuario. Fale com o suporte para conferir." };
+                }
+                diretoFalhou = true;
+            } catch (error) {
+                diretoFalhou = true;
+            }
+            // Respondeu, so nao deixa o navegador ler (sem CORS): nao e a rede do cliente.
+            if (diretoFalhou && (await painelRespondeSemCors(url))) {
+                diretoFalhou = false;
+                marcarServidorPelaPonte(url);
+            }
+        }
+
+        let pelaPonte = null;
+        try {
+            pelaPonte = await pedirJsonComPrazo(urlPelaPonte(url), 15000);
+        } catch (error) {
+            pelaPonte = null;
+        }
+        if (pelaPonte && pelaPonte.dados && pelaPonte.dados.user_info) {
+            const status = statusPelosDadosDoPainel(pelaPonte.dados);
+            if (diretoFalhou && (status.estado === "online" || status.estado === "aviso")) {
+                return {
+                    estado: "bloqueio",
+                    rotulo: "Possivel bloqueio na internet",
+                    detalhe: "O servidor esta no ar, mas esta rede nao deixa conectar. Teste outro Wi-Fi ou os dados do celular.",
+                };
+            }
+            return status;
+        }
+        if (pelaPonte && pelaPonte.dados && pelaPonte.dados.erro === "acesso vencido") {
+            return { estado: "vencido", rotulo: "Plano vencido", detalhe: "Seu plano Tropical Play venceu. Renove para voltar a assistir." };
+        }
+        return {
+            estado: "fora",
+            rotulo: "Servidor sem resposta",
+            detalhe: "O servidor nao respondeu agora. Pode ser instabilidade dele: tente de novo em alguns minutos.",
+        };
+    }
+
+    function verificarServidoresDaTela() {
+        const servers = currentServers();
+        servers.forEach(function (server) {
+            let chave;
+            try {
+                chave = chaveDoServidor(parseServer(server));
+            } catch (error) {
+                chave = String(server && server.url);
+            }
+            const guardado = statusDosServidores[chave];
+            if (guardado && (guardado.verificando || Date.now() - guardado.em < STATUS_VALIDO_MS)) {
+                return;
+            }
+            statusDosServidores[chave] = { verificando: true, em: Date.now(), estado: "verificando", rotulo: "Verificando...", detalhe: "" };
+            verificarServidor(server)
+                .catch(function () {
+                    return { estado: "fora", rotulo: "Servidor sem resposta", detalhe: "" };
+                })
+                .then(function (resultado) {
+                    resultado.em = Date.now();
+                    resultado.verificando = false;
+                    statusDosServidores[chave] = resultado;
+                    if (state.screen === "servers") {
+                        renderServerScreen();
+                    }
+                });
+        });
+    }
+
+    function statusDoServidorNaTela(server) {
+        let chave;
+        try {
+            chave = chaveDoServidor(parseServer(server));
+        } catch (error) {
+            chave = String(server && server.url);
+        }
+        return statusDosServidores[chave] || { estado: "verificando", rotulo: "Verificando...", detalhe: "" };
+    }
+
     // ---- Controle parental (1.5.3) ----------------------------------------------------
     // Igual ao TP Media da Fire TV: senha de 4 numeros guardada no aparelho (padrao
     // 0000). Categoria com nome de conteudo adulto pede a senha para abrir; depois de
@@ -13270,6 +13479,46 @@
     // player_api.php de um servidor cadastrado no codigo. O video continua direto.
     const PONTE_DAS_LISTAS = "https://tropicalplaymsx.web.app/msx/xapi";
 
+    const servidoresPelaPonte = Object.create(null);
+
+    function origemDe(url) {
+        try {
+            return new URL(url).origin.toLowerCase();
+        } catch (error) {
+            return "";
+        }
+    }
+
+    function ehPedidoDeLista(url) {
+        return /\/player_api\.php(\?|$)/.test(String(url || ""));
+    }
+
+    function usarPonteParaEsteServidor(url) {
+        return ehPedidoDeLista(url) && Boolean(servidoresPelaPonte[origemDe(url)]);
+    }
+
+    function marcarServidorPelaPonte(url) {
+        const origem = origemDe(url);
+        if (origem) {
+            servidoresPelaPonte[origem] = true;
+        }
+    }
+
+    // Pedido "no-cors": a resposta vem opaca, mas so chega se o painel respondeu. Separa
+    // "painel sem CORS" (chega) de "rede barrando o painel" (nao chega).
+    async function painelRespondeSemCors(url) {
+        const controle = typeof AbortController === "function" ? new AbortController() : null;
+        const corte = controle ? setTimeout(function () { controle.abort(); }, 8000) : null;
+        try {
+            await fetch(url, { method: "GET", mode: "no-cors", signal: controle ? controle.signal : undefined });
+            return true;
+        } catch (error) {
+            return false;
+        } finally {
+            if (corte) clearTimeout(corte);
+        }
+    }
+
     function urlPelaPonte(url) {
         const codigo = String(state.code || (state.profile && state.profile.userNumber) || "").trim();
         return PONTE_DAS_LISTAS + "?code=" + encodeURIComponent(codigo) + "&url=" + encodeURIComponent(url);
@@ -13291,7 +13540,7 @@
         }
 
         try {
-            if (pedidoMisto(url)) {
+            if (pedidoMisto(url) || usarPonteParaEsteServidor(url)) {
                 return await fetch(urlPelaPonte(url), {
                     method: "GET",
                     headers: { Accept: acceptHeader },
@@ -13308,6 +13557,19 @@
         } catch (error) {
             if (error && error.name === "AbortError") {
                 throw new Error("O servidor demorou demais para responder.");
+            }
+            // 1.5.4: painel que nao manda a liberacao (CORS) para o navegador ler a resposta.
+            // Ele responde, mas o fetch falha como se fosse rede. As listas dele vao pela
+            // ponte do Firebase dali em diante (so player_api.php).
+            if (ehPedidoDeLista(url) && !pedidoMisto(url) && !usarPonteParaEsteServidor(url) && isNetworkConnected()) {
+                const respondeSemCors = await painelRespondeSemCors(url);
+                if (respondeSemCors) {
+                    marcarServidorPelaPonte(url);
+                    return await fetch(urlPelaPonte(url), {
+                        method: "GET",
+                        headers: { Accept: acceptHeader },
+                    });
+                }
             }
             if (isNetworkError(error)) {
                 showNetworkUnavailable("Nao foi possivel conectar. Verifique a internet da TV e tente novamente.");
