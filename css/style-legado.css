@@ -4605,6 +4605,39 @@ html.com-ponteiro .fire-home-brand { padding-left: 190px; }
 html.com-ponteiro .detail-preview-shell,
 html.com-ponteiro.previa-no-corpo #playerVideo { cursor: pointer; }
 
+/* 1.6.0: no computador, passar o mouse em cima de um botao, cartao, canal ou tecla ja
+   mostra que e ali que o clique vai cair: contorno claro e fino por dentro (as colunas
+   cortam o que passa da borda) e um leve clarear. Fica mais suave que o cursor do
+   controle (is-focused), para os dois nao se confundirem. So vale para mouse de verdade
+   (hover: hover / pointer: fine): no celular e no iPad o toque nao deixa marca presa, e
+   na TV o controle nao passa por aqui. */
+@media (hover: hover) and (pointer: fine) {
+    html.com-ponteiro [data-foco-grupo]:not(.is-focused):hover,
+    html.com-ponteiro .session-action:not(.is-focused):hover,
+    html.com-ponteiro .exit-action:not(.is-focused):hover,
+    html.com-ponteiro .player-recovery-action:not(.is-focused):hover,
+    html.com-ponteiro .senha-tecla:not(.is-focused):hover,
+    html.com-ponteiro .network-dialog:hover {
+        outline: 3px solid rgba(255, 255, 255, 0.55);
+        outline-offset: -3px;
+        -webkit-filter: brightness(1.15);
+                filter: brightness(1.15);
+        cursor: pointer;
+    }
+    html.com-ponteiro [data-foco-grupo].is-focused:hover,
+    html.com-ponteiro .session-action.is-focused:hover,
+    html.com-ponteiro .exit-action.is-focused:hover,
+    html.com-ponteiro .senha-tecla.is-focused:hover {
+        -webkit-filter: brightness(1.1);
+                filter: brightness(1.1);
+    }
+    html.com-ponteiro .session-action,
+    html.com-ponteiro .exit-action,
+    html.com-ponteiro .player-recovery-action,
+    html.com-ponteiro .senha-tecla { cursor: pointer; }
+    #botaoVoltarNaTela:hover { background: rgba(255, 144, 81, 0.22); }
+}
+
 /* Cursor das listas (1.4.0). Antes o item com o cursor (borda amarela fina) e o item
    escolhido (borda laranja) pareciam iguais: ao apertar para a esquerda, o cursor caia na
    categoria ja escolhida e nada mudava na tela, parecia que a tecla nao tinha funcionado.
