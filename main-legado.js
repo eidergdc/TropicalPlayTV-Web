@@ -10,7 +10,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return;
   }
   window.TP_APP_RODANDO = true;
-  var APP_VERSION = "1.5.8";
+  var APP_VERSION = "1.5.9";
   function completarTexto(texto, tamanho, enchimento, noInicio) {
     texto = String(texto);
     tamanho = tamanho >> 0;
@@ -1449,6 +1449,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       console.log("Tizen key setup skipped:", error);
     }
   }
+  var motivoFirebase = "";
   function initFirebase() {
     try {
       if (window.firebase && !firebase.apps.length) {
@@ -1456,10 +1457,20 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       }
       if (window.firebase) {
         firestore = firebase.firestore();
+        if (document.documentElement.classList.contains("app-legado")) {
+          firestore.settings({
+            experimentalForceLongPolling: true,
+            merge: true
+          });
+        }
       }
     } catch (error) {
       console.log("Firebase init failed:", error);
       firestore = null;
+      motivoFirebase = String(error && (error.message || error.name) || error || "").slice(0, 80);
+    }
+    if (!firestore && !motivoFirebase) {
+      motivoFirebase = window.firebase ? "sem firestore" : "biblioteca nao carregou";
     }
   }
   function safeRestoreSession() {
@@ -3014,7 +3025,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               _context5.n = 1;
               break;
             }
-            showToast("Firebase indisponivel no momento. Tente novamente em instantes.", "error");
+            showToast("Firebase indisponivel no momento. Tente novamente em instantes." + (motivoFirebase ? " (" + motivoFirebase + ")" : ""), "error");
             return _context5.a(2, null);
           case 1:
             _context5.p = 1;

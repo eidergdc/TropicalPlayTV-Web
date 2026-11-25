@@ -10,7 +10,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.5.8";
+    const APP_VERSION = "1.5.9";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -1505,6 +1505,10 @@
         }
     }
 
+    // Motivo de o Firebase nao ter iniciado: vai junto no aviso, para o suporte saber o que
+    // a TV disse (1.5.9).
+    let motivoFirebase = "";
+
     function initFirebase() {
         try {
             if (window.firebase && !firebase.apps.length) {
@@ -1512,10 +1516,19 @@
             }
             if (window.firebase) {
                 firestore = firebase.firestore();
+                // TV antiga (1.5.9): a conexao continua (WebChannel) do Firestore falha no
+                // WebKit antigo; o "long polling" e o modo feito para esses casos.
+                if (document.documentElement.classList.contains("app-legado")) {
+                    firestore.settings({ experimentalForceLongPolling: true, merge: true });
+                }
             }
         } catch (error) {
             console.log("Firebase init failed:", error);
             firestore = null;
+            motivoFirebase = String((error && (error.message || error.name)) || error || "").slice(0, 80);
+        }
+        if (!firestore && !motivoFirebase) {
+            motivoFirebase = window.firebase ? "sem firestore" : "biblioteca nao carregou";
         }
     }
 
@@ -3151,7 +3164,7 @@
 
     async function fetchDeviceDocumentByCode(code) {
         if (!firestore) {
-            showToast("Firebase indisponivel no momento. Tente novamente em instantes.", "error");
+            showToast("Firebase indisponivel no momento. Tente novamente em instantes." + (motivoFirebase ? " (" + motivoFirebase + ")" : ""), "error");
             return null;
         }
 
