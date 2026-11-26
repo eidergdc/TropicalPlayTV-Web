@@ -10,7 +10,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.6.1";
+    const APP_VERSION = "1.6.2";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -3654,6 +3654,39 @@
         if (!authFlag) {
             throw new Error("O servidor respondeu, mas nao autenticou esse acesso.");
         }
+        guardarVencimentoDoPainel(server, payload);
+    }
+
+    // Vencimento na tela inicial (1.6.2): o cartao "Expira em" mostra a data que o servidor
+    // conectado informa (user_info.exp_date do painel), nao a do cadastro do codigo no
+    // Firebase - essa continua em Configuracoes ("Seu plano vence em"). exp_date vazio ou 0
+    // no painel quer dizer acesso sem vencimento.
+    function guardarVencimentoDoPainel(server, payload) {
+        const info = payload && payload.user_info;
+        if (!server || !info || String(info.auth) !== "1") return;
+        const segundos = Number(info.exp_date);
+        server.vencimentoNoPainel = segundos > 0 ? segundos * 1000 : 0;
+    }
+
+    function textoDoVencimentoNoPainel(server) {
+        if (!server || server.vencimentoNoPainel === undefined || server.vencimentoNoPainel === null) return "Sem data";
+        if (!server.vencimentoNoPainel) return "Sem vencimento";
+        return formatDate(server.vencimentoNoPainel);
+    }
+
+    async function lerVencimentoDoPainel(server) {
+        try {
+            const payload = await fetchJson(
+                server.baseUrl +
+                    "/player_api.php?username=" +
+                    encodeURIComponent(server.username) +
+                    "&password=" +
+                    encodeURIComponent(server.password)
+            );
+            guardarVencimentoDoPainel(server, payload);
+        } catch (error) {
+            console.log("Panel expiry read skipped:", error);
+        }
     }
 
     async function loadHomeData() {
@@ -3672,7 +3705,13 @@
         const live = fetchCategories("get_live_categories");
         const movies = fetchCategories("get_vod_categories");
         const series = fetchCategories("get_series_categories");
-        const results = await Promise.all([live, movies, series]);
+        const vencimento = lerVencimentoDoPainel(state.selectedServer);
+        const results = await Promise.all([live, movies, series, vencimento]);
+        try {
+            localStorage.setItem(STORAGE_KEYS.selectedServer, JSON.stringify(state.selectedServer));
+        } catch (error) {
+            console.log("Selected server save skipped:", error);
+        }
 
         state.library.live.categories = results[0];
         state.library.movies.categories = results[1];
@@ -8152,7 +8191,7 @@
         dom.homeTitle.textContent = "Tropical Play";
         dom.heroMeta.innerHTML = [
             metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"),
-            metaCard("Expira em", formatDate(state.profile && state.profile.expiresAt)),
+            metaCard("Expira em", textoDoVencimentoNoPainel(state.selectedServer)),
         ].join("");
 
         dom.homeCards.innerHTML = HOME_CARDS.map(function (card) {

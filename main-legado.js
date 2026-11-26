@@ -10,7 +10,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return;
   }
   window.TP_APP_RODANDO = true;
-  var APP_VERSION = "1.6.1";
+  var APP_VERSION = "1.6.2";
   function completarTexto(texto, tamanho, enchimento, noInicio) {
     texto = String(texto);
     tamanho = tamanho >> 0;
@@ -3558,81 +3558,128 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             }
             throw new Error("O servidor respondeu, mas nao autenticou esse acesso.");
           case 2:
+            guardarVencimentoDoPainel(server, payload);
+          case 3:
             return _context0.a(2);
         }
       }, _callee0);
     }));
     return _authenticateServer.apply(this, arguments);
   }
+  function guardarVencimentoDoPainel(server, payload) {
+    var info = payload && payload.user_info;
+    if (!server || !info || String(info.auth) !== "1") return;
+    var segundos = Number(info.exp_date);
+    server.vencimentoNoPainel = segundos > 0 ? segundos * 1000 : 0;
+  }
+  function textoDoVencimentoNoPainel(server) {
+    if (!server || server.vencimentoNoPainel === undefined || server.vencimentoNoPainel === null) return "Sem data";
+    if (!server.vencimentoNoPainel) return "Sem vencimento";
+    return formatDate(server.vencimentoNoPainel);
+  }
+  function lerVencimentoDoPainel(_x9) {
+    return _lerVencimentoDoPainel.apply(this, arguments);
+  }
+  function _lerVencimentoDoPainel() {
+    _lerVencimentoDoPainel = _asyncToGenerator(_regenerator().m(function _callee1(server) {
+      var payload, _t8;
+      return _regenerator().w(function (_context1) {
+        while (1) switch (_context1.p = _context1.n) {
+          case 0:
+            _context1.p = 0;
+            _context1.n = 1;
+            return fetchJson(server.baseUrl + "/player_api.php?username=" + encodeURIComponent(server.username) + "&password=" + encodeURIComponent(server.password));
+          case 1:
+            payload = _context1.v;
+            guardarVencimentoDoPainel(server, payload);
+            _context1.n = 3;
+            break;
+          case 2:
+            _context1.p = 2;
+            _t8 = _context1.v;
+            console.log("Panel expiry read skipped:", _t8);
+          case 3:
+            return _context1.a(2);
+        }
+      }, _callee1, null, [[0, 2]]);
+    }));
+    return _lerVencimentoDoPainel.apply(this, arguments);
+  }
   function loadHomeData() {
     return _loadHomeData.apply(this, arguments);
   }
   function _loadHomeData() {
-    _loadHomeData = _asyncToGenerator(_regenerator().m(function _callee1() {
-      var live, movies, series, results;
-      return _regenerator().w(function (_context1) {
-        while (1) switch (_context1.n) {
+    _loadHomeData = _asyncToGenerator(_regenerator().m(function _callee10() {
+      var live, movies, series, vencimento, results;
+      return _regenerator().w(function (_context10) {
+        while (1) switch (_context10.n) {
           case 0:
             if (state.selectedServer) {
-              _context1.n = 1;
+              _context10.n = 1;
               break;
             }
             throw new Error("Nenhum servidor selecionado.");
           case 1:
             resetLibraryState();
             if (!state.selectedServer.isDemo) {
-              _context1.n = 2;
+              _context10.n = 2;
               break;
             }
             state.library = clone(SAMPLE_LIBRARY);
             updateHomeCounts();
-            return _context1.a(2);
+            return _context10.a(2);
           case 2:
             live = fetchCategories("get_live_categories");
             movies = fetchCategories("get_vod_categories");
             series = fetchCategories("get_series_categories");
-            _context1.n = 3;
-            return Promise.all([live, movies, series]);
+            vencimento = lerVencimentoDoPainel(state.selectedServer);
+            _context10.n = 3;
+            return Promise.all([live, movies, series, vencimento]);
           case 3:
-            results = _context1.v;
+            results = _context10.v;
+            try {
+              localStorage.setItem(STORAGE_KEYS.selectedServer, JSON.stringify(state.selectedServer));
+            } catch (error) {
+              console.log("Selected server save skipped:", error);
+            }
             state.library.live.categories = results[0];
             state.library.movies.categories = results[1];
             state.library.series.categories = results[2];
             updateHomeCounts();
           case 4:
-            return _context1.a(2);
+            return _context10.a(2);
         }
-      }, _callee1);
+      }, _callee10);
     }));
     return _loadHomeData.apply(this, arguments);
   }
-  function refreshSelectedServerData(_x9) {
+  function refreshSelectedServerData(_x0) {
     return _refreshSelectedServerData.apply(this, arguments);
   }
   function _refreshSelectedServerData() {
-    _refreshSelectedServerData = _asyncToGenerator(_regenerator().m(function _callee10(options) {
-      var previousLibrary, _t8;
-      return _regenerator().w(function (_context10) {
-        while (1) switch (_context10.p = _context10.n) {
+    _refreshSelectedServerData = _asyncToGenerator(_regenerator().m(function _callee11(options) {
+      var previousLibrary, _t9;
+      return _regenerator().w(function (_context11) {
+        while (1) switch (_context11.p = _context11.n) {
           case 0:
             if (state.selectedServer) {
-              _context10.n = 1;
+              _context11.n = 1;
               break;
             }
             showToast("Nenhum servidor conectado para atualizar.", "error");
-            return _context10.a(2, false);
+            return _context11.a(2, false);
           case 1:
             previousLibrary = clone(state.library);
             showLoading(options && options.loadingText || "Atualizando dados...");
-            _context10.p = 2;
+            _context11.p = 2;
             if (state.selectedServer.isDemo) {
-              _context10.n = 3;
+              _context11.n = 3;
               break;
             }
-            _context10.n = 3;
+            _context11.n = 3;
             return authenticateServer(state.selectedServer);
           case 3:
-            _context10.n = 4;
+            _context11.n = 4;
             return loadHomeData();
           case 4:
             if (state.catalog.categoryIndex >= currentCategories().length) {
@@ -3649,47 +3696,47 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             state.catalog.detailKey = "";
             render();
             showToast(options && options.successMessage || "Dados do servidor atualizados com sucesso.", "success");
-            return _context10.a(2, true);
+            return _context11.a(2, true);
           case 5:
-            _context10.p = 5;
-            _t8 = _context10.v;
+            _context11.p = 5;
+            _t9 = _context11.v;
             state.library = previousLibrary;
             updateHomeCounts();
             render();
-            console.log("Refresh failed:", _t8);
-            showToast(_t8.message || "Nao foi possivel atualizar os dados do servidor.", "error");
-            return _context10.a(2, false);
+            console.log("Refresh failed:", _t9);
+            showToast(_t9.message || "Nao foi possivel atualizar os dados do servidor.", "error");
+            return _context11.a(2, false);
           case 6:
-            _context10.p = 6;
-            _context10.n = 7;
+            _context11.p = 6;
+            _context11.n = 7;
             return hideLoading();
           case 7:
-            return _context10.f(6);
+            return _context11.f(6);
           case 8:
-            return _context10.a(2);
+            return _context11.a(2);
         }
-      }, _callee10, null, [[2, 5, 6, 8]]);
+      }, _callee11, null, [[2, 5, 6, 8]]);
     }));
     return _refreshSelectedServerData.apply(this, arguments);
   }
-  function fetchCategories(_x0) {
+  function fetchCategories(_x1) {
     return _fetchCategories.apply(this, arguments);
   }
   function _fetchCategories() {
-    _fetchCategories = _asyncToGenerator(_regenerator().m(function _callee11(action) {
+    _fetchCategories = _asyncToGenerator(_regenerator().m(function _callee12(action) {
       var server, url, data;
-      return _regenerator().w(function (_context11) {
-        while (1) switch (_context11.n) {
+      return _regenerator().w(function (_context12) {
+        while (1) switch (_context12.n) {
           case 0:
             server = state.selectedServer;
             url = server.baseUrl + "/player_api.php?username=" + encodeURIComponent(server.username) + "&password=" + encodeURIComponent(server.password) + "&action=" + encodeURIComponent(action);
-            _context11.n = 1;
+            _context12.n = 1;
             return fetchJson(url);
           case 1:
-            data = _context11.v;
-            return _context11.a(2, Array.isArray(data) ? data : []);
+            data = _context12.v;
+            return _context12.a(2, Array.isArray(data) ? data : []);
         }
-      }, _callee11);
+      }, _callee12);
     }));
     return _fetchCategories.apply(this, arguments);
   }
@@ -3697,102 +3744,102 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _ensureItemsForCurrentCategory.apply(this, arguments);
   }
   function _ensureItemsForCurrentCategory() {
-    _ensureItemsForCurrentCategory = _asyncToGenerator(_regenerator().m(function _callee12() {
-      return _regenerator().w(function (_context12) {
-        while (1) switch (_context12.n) {
+    _ensureItemsForCurrentCategory = _asyncToGenerator(_regenerator().m(function _callee13() {
+      return _regenerator().w(function (_context13) {
+        while (1) switch (_context13.n) {
           case 0:
-            return _context12.a(2, ensureItemsForCategoryIndex(state.catalog.categoryIndex));
+            return _context13.a(2, ensureItemsForCategoryIndex(state.catalog.categoryIndex));
         }
-      }, _callee12);
+      }, _callee13);
     }));
     return _ensureItemsForCurrentCategory.apply(this, arguments);
   }
-  function ensureItemsForCategoryIndex(_x1) {
+  function ensureItemsForCategoryIndex(_x10) {
     return _ensureItemsForCategoryIndex.apply(this, arguments);
   }
   function _ensureItemsForCategoryIndex() {
-    _ensureItemsForCategoryIndex = _asyncToGenerator(_regenerator().m(function _callee13(categoryIndex) {
+    _ensureItemsForCategoryIndex = _asyncToGenerator(_regenerator().m(function _callee14(categoryIndex) {
       var type, categories, category, categoryId;
-      return _regenerator().w(function (_context13) {
-        while (1) switch (_context13.p = _context13.n) {
+      return _regenerator().w(function (_context14) {
+        while (1) switch (_context14.p = _context14.n) {
           case 0:
             type = state.catalog.type;
             categories = currentCategories();
             category = categories[categoryIndex];
             if (category) {
-              _context13.n = 1;
+              _context14.n = 1;
               break;
             }
-            return _context13.a(2);
+            return _context14.a(2);
           case 1:
             if (!(type === FAVORITES_CATALOG_TYPE)) {
-              _context13.n = 2;
+              _context14.n = 2;
               break;
             }
-            return _context13.a(2);
+            return _context14.a(2);
           case 2:
             categoryId = category.category_id;
             if (!(type === "live" && isAllLiveCategoryId(categoryId))) {
-              _context13.n = 4;
+              _context14.n = 4;
               break;
             }
-            _context13.n = 3;
+            _context14.n = 3;
             return ensureAllLiveItems();
           case 3:
-            return _context13.a(2);
+            return _context14.a(2);
           case 4:
             if (!(type === "movies" && isAllMoviesCategoryId(categoryId))) {
-              _context13.n = 6;
+              _context14.n = 6;
               break;
             }
-            _context13.n = 5;
+            _context14.n = 5;
             return ensureAllMovieItems();
           case 5:
-            return _context13.a(2);
+            return _context14.a(2);
           case 6:
             if (!(type === "series" && isAllSeriesCategoryId(categoryId))) {
-              _context13.n = 8;
+              _context14.n = 8;
               break;
             }
-            _context13.n = 7;
+            _context14.n = 7;
             return ensureAllSeriesItems();
           case 7:
-            return _context13.a(2);
+            return _context14.a(2);
           case 8:
             if (!(categoryId === RECENT_MOVIES_CATEGORY_ID)) {
-              _context13.n = 9;
+              _context14.n = 9;
               break;
             }
-            return _context13.a(2);
+            return _context14.a(2);
           case 9:
             if (!(categoryId === RECENT_SERIES_CATEGORY_ID)) {
-              _context13.n = 10;
+              _context14.n = 10;
               break;
             }
-            return _context13.a(2);
+            return _context14.a(2);
           case 10:
             if (!state.library[type].itemsByCategory[categoryId]) {
-              _context13.n = 11;
+              _context14.n = 11;
               break;
             }
-            return _context13.a(2);
+            return _context14.a(2);
           case 11:
             showLoading("Carregando conteudo...");
-            _context13.p = 12;
-            _context13.n = 13;
+            _context14.p = 12;
+            _context14.n = 13;
             return fetchCatalogItemsForCategory(type, categoryId);
           case 13:
-            state.library[type].itemsByCategory[categoryId] = _context13.v;
+            state.library[type].itemsByCategory[categoryId] = _context14.v;
           case 14:
-            _context13.p = 14;
-            _context13.n = 15;
+            _context14.p = 14;
+            _context14.n = 15;
             return hideLoading();
           case 15:
-            return _context13.f(14);
+            return _context14.f(14);
           case 16:
-            return _context13.a(2);
+            return _context14.a(2);
         }
-      }, _callee13, null, [[12,, 14, 16]]);
+      }, _callee14, null, [[12,, 14, 16]]);
     }));
     return _ensureItemsForCategoryIndex.apply(this, arguments);
   }
@@ -3800,38 +3847,38 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _ensureAllLiveItems.apply(this, arguments);
   }
   function _ensureAllLiveItems() {
-    _ensureAllLiveItems = _asyncToGenerator(_regenerator().m(function _callee14() {
+    _ensureAllLiveItems = _asyncToGenerator(_regenerator().m(function _callee15() {
       var sourceCategories, allItems, missingCategories;
-      return _regenerator().w(function (_context14) {
-        while (1) switch (_context14.p = _context14.n) {
+      return _regenerator().w(function (_context15) {
+        while (1) switch (_context15.p = _context15.n) {
           case 0:
             if (!state.library.live.itemsByCategory[ALL_LIVE_CATEGORY_ID]) {
-              _context14.n = 1;
+              _context15.n = 1;
               break;
             }
-            return _context14.a(2);
+            return _context15.a(2);
           case 1:
             sourceCategories = liveSourceCategories();
             showLoading("Carregando todos os canais.\nPreparando a lista completa para voce.", {
               minDurationMs: 10000,
               countdownSeconds: 10
             });
-            _context14.p = 2;
-            _context14.n = 3;
+            _context15.p = 2;
+            _context15.n = 3;
             return waitForNextPaint();
           case 3:
-            _context14.n = 4;
+            _context15.n = 4;
             return fetchAllLiveItems();
           case 4:
-            allItems = _context14.v;
+            allItems = _context15.v;
             if (!(!allItems.length && sourceCategories.length)) {
-              _context14.n = 6;
+              _context15.n = 6;
               break;
             }
             missingCategories = sourceCategories.filter(function (category) {
               return !state.library.live.itemsByCategory[category.category_id];
             });
-            _context14.n = 5;
+            _context15.n = 5;
             return Promise.all(missingCategories.map(function (category) {
               return fetchCatalogItemsForCategory("live", category.category_id).then(function (items) {
                 state.library.live.itemsByCategory[category.category_id] = items;
@@ -3845,15 +3892,15 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               state.library.live.itemsByCategory.ALL = allItems;
             }
           case 7:
-            _context14.p = 7;
-            _context14.n = 8;
+            _context15.p = 7;
+            _context15.n = 8;
             return hideLoading();
           case 8:
-            return _context14.f(7);
+            return _context15.f(7);
           case 9:
-            return _context14.a(2);
+            return _context15.a(2);
         }
-      }, _callee14, null, [[2,, 7, 9]]);
+      }, _callee15, null, [[2,, 7, 9]]);
     }));
     return _ensureAllLiveItems.apply(this, arguments);
   }
@@ -3861,25 +3908,25 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _fetchAllLiveItems.apply(this, arguments);
   }
   function _fetchAllLiveItems() {
-    _fetchAllLiveItems = _asyncToGenerator(_regenerator().m(function _callee15() {
+    _fetchAllLiveItems = _asyncToGenerator(_regenerator().m(function _callee16() {
       var url, items;
-      return _regenerator().w(function (_context15) {
-        while (1) switch (_context15.n) {
+      return _regenerator().w(function (_context16) {
+        while (1) switch (_context16.n) {
           case 0:
             if (!state.selectedServer.isDemo) {
-              _context15.n = 1;
+              _context16.n = 1;
               break;
             }
-            return _context15.a(2, flattenDemoLiveItems());
+            return _context16.a(2, flattenDemoLiveItems());
           case 1:
             url = state.selectedServer.baseUrl + "/player_api.php?username=" + encodeURIComponent(state.selectedServer.username) + "&password=" + encodeURIComponent(state.selectedServer.password) + "&action=" + encodeURIComponent("get_live_streams");
-            _context15.n = 2;
+            _context16.n = 2;
             return fetchJson(url);
           case 2:
-            items = _context15.v;
-            return _context15.a(2, Array.isArray(items) ? dedupeCatalogItems(items) : []);
+            items = _context16.v;
+            return _context16.a(2, Array.isArray(items) ? dedupeCatalogItems(items) : []);
         }
-      }, _callee15);
+      }, _callee16);
     }));
     return _fetchAllLiveItems.apply(this, arguments);
   }
@@ -3887,32 +3934,32 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _ensureAllMovieItems.apply(this, arguments);
   }
   function _ensureAllMovieItems() {
-    _ensureAllMovieItems = _asyncToGenerator(_regenerator().m(function _callee16() {
+    _ensureAllMovieItems = _asyncToGenerator(_regenerator().m(function _callee17() {
       var sourceCategories, allItems, missingCategories;
-      return _regenerator().w(function (_context16) {
-        while (1) switch (_context16.p = _context16.n) {
+      return _regenerator().w(function (_context17) {
+        while (1) switch (_context17.p = _context17.n) {
           case 0:
             if (!state.library.movies.itemsByCategory[ALL_MOVIES_CATEGORY_ID]) {
-              _context16.n = 1;
+              _context17.n = 1;
               break;
             }
-            return _context16.a(2);
+            return _context17.a(2);
           case 1:
             sourceCategories = movieSourceCategories();
             showLoading("Carregando todos os filmes...");
-            _context16.p = 2;
-            _context16.n = 3;
+            _context17.p = 2;
+            _context17.n = 3;
             return fetchAllMovieItems();
           case 3:
-            allItems = _context16.v;
+            allItems = _context17.v;
             if (!(!allItems.length && sourceCategories.length)) {
-              _context16.n = 5;
+              _context17.n = 5;
               break;
             }
             missingCategories = sourceCategories.filter(function (category) {
               return !state.library.movies.itemsByCategory[category.category_id];
             });
-            _context16.n = 4;
+            _context17.n = 4;
             return Promise.all(missingCategories.map(function (category) {
               return fetchCatalogItemsForCategory("movies", category.category_id).then(function (items) {
                 state.library.movies.itemsByCategory[category.category_id] = items;
@@ -3926,13 +3973,13 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               state.library.movies.itemsByCategory.ALL = allItems;
             }
           case 6:
-            _context16.p = 6;
+            _context17.p = 6;
             hideLoading();
-            return _context16.f(6);
+            return _context17.f(6);
           case 7:
-            return _context16.a(2);
+            return _context17.a(2);
         }
-      }, _callee16, null, [[2,, 6, 7]]);
+      }, _callee17, null, [[2,, 6, 7]]);
     }));
     return _ensureAllMovieItems.apply(this, arguments);
   }
@@ -3940,25 +3987,25 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _fetchAllMovieItems.apply(this, arguments);
   }
   function _fetchAllMovieItems() {
-    _fetchAllMovieItems = _asyncToGenerator(_regenerator().m(function _callee17() {
+    _fetchAllMovieItems = _asyncToGenerator(_regenerator().m(function _callee18() {
       var url, items;
-      return _regenerator().w(function (_context17) {
-        while (1) switch (_context17.n) {
+      return _regenerator().w(function (_context18) {
+        while (1) switch (_context18.n) {
           case 0:
             if (!state.selectedServer.isDemo) {
-              _context17.n = 1;
+              _context18.n = 1;
               break;
             }
-            return _context17.a(2, flattenDemoMovieItems());
+            return _context18.a(2, flattenDemoMovieItems());
           case 1:
             url = state.selectedServer.baseUrl + "/player_api.php?username=" + encodeURIComponent(state.selectedServer.username) + "&password=" + encodeURIComponent(state.selectedServer.password) + "&action=" + encodeURIComponent("get_vod_streams");
-            _context17.n = 2;
+            _context18.n = 2;
             return fetchJson(url);
           case 2:
-            items = _context17.v;
-            return _context17.a(2, Array.isArray(items) ? dedupeCatalogItems(items) : []);
+            items = _context18.v;
+            return _context18.a(2, Array.isArray(items) ? dedupeCatalogItems(items) : []);
         }
-      }, _callee17);
+      }, _callee18);
     }));
     return _fetchAllMovieItems.apply(this, arguments);
   }
@@ -3966,32 +4013,32 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _ensureAllSeriesItems.apply(this, arguments);
   }
   function _ensureAllSeriesItems() {
-    _ensureAllSeriesItems = _asyncToGenerator(_regenerator().m(function _callee18() {
+    _ensureAllSeriesItems = _asyncToGenerator(_regenerator().m(function _callee19() {
       var sourceCategories, allItems, missingCategories;
-      return _regenerator().w(function (_context18) {
-        while (1) switch (_context18.p = _context18.n) {
+      return _regenerator().w(function (_context19) {
+        while (1) switch (_context19.p = _context19.n) {
           case 0:
             if (!state.library.series.itemsByCategory[ALL_SERIES_CATEGORY_ID]) {
-              _context18.n = 1;
+              _context19.n = 1;
               break;
             }
-            return _context18.a(2);
+            return _context19.a(2);
           case 1:
             sourceCategories = seriesSourceCategories();
             showLoading("Carregando todas as series...");
-            _context18.p = 2;
-            _context18.n = 3;
+            _context19.p = 2;
+            _context19.n = 3;
             return fetchAllSeriesItems();
           case 3:
-            allItems = _context18.v;
+            allItems = _context19.v;
             if (!(!allItems.length && sourceCategories.length)) {
-              _context18.n = 5;
+              _context19.n = 5;
               break;
             }
             missingCategories = sourceCategories.filter(function (category) {
               return !state.library.series.itemsByCategory[category.category_id];
             });
-            _context18.n = 4;
+            _context19.n = 4;
             return Promise.all(missingCategories.map(function (category) {
               return fetchCatalogItemsForCategory("series", category.category_id).then(function (items) {
                 state.library.series.itemsByCategory[category.category_id] = items;
@@ -4005,13 +4052,13 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               state.library.series.itemsByCategory.ALL = allItems;
             }
           case 6:
-            _context18.p = 6;
+            _context19.p = 6;
             hideLoading();
-            return _context18.f(6);
+            return _context19.f(6);
           case 7:
-            return _context18.a(2);
+            return _context19.a(2);
         }
-      }, _callee18, null, [[2,, 6, 7]]);
+      }, _callee19, null, [[2,, 6, 7]]);
     }));
     return _ensureAllSeriesItems.apply(this, arguments);
   }
@@ -4019,34 +4066,8 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _fetchAllSeriesItems.apply(this, arguments);
   }
   function _fetchAllSeriesItems() {
-    _fetchAllSeriesItems = _asyncToGenerator(_regenerator().m(function _callee19() {
+    _fetchAllSeriesItems = _asyncToGenerator(_regenerator().m(function _callee20() {
       var url, items;
-      return _regenerator().w(function (_context19) {
-        while (1) switch (_context19.n) {
-          case 0:
-            if (!state.selectedServer.isDemo) {
-              _context19.n = 1;
-              break;
-            }
-            return _context19.a(2, flattenDemoSeriesItems());
-          case 1:
-            url = state.selectedServer.baseUrl + "/player_api.php?username=" + encodeURIComponent(state.selectedServer.username) + "&password=" + encodeURIComponent(state.selectedServer.password) + "&action=" + encodeURIComponent("get_series");
-            _context19.n = 2;
-            return fetchJson(url);
-          case 2:
-            items = _context19.v;
-            return _context19.a(2, Array.isArray(items) ? dedupeCatalogItems(items) : []);
-        }
-      }, _callee19);
-    }));
-    return _fetchAllSeriesItems.apply(this, arguments);
-  }
-  function fetchCatalogItemsForCategory(_x10, _x11) {
-    return _fetchCatalogItemsForCategory.apply(this, arguments);
-  }
-  function _fetchCatalogItemsForCategory() {
-    _fetchCatalogItemsForCategory = _asyncToGenerator(_regenerator().m(function _callee20(type, categoryId) {
-      var demoItems, actionMap, url, items;
       return _regenerator().w(function (_context20) {
         while (1) switch (_context20.n) {
           case 0:
@@ -4054,8 +4075,34 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               _context20.n = 1;
               break;
             }
+            return _context20.a(2, flattenDemoSeriesItems());
+          case 1:
+            url = state.selectedServer.baseUrl + "/player_api.php?username=" + encodeURIComponent(state.selectedServer.username) + "&password=" + encodeURIComponent(state.selectedServer.password) + "&action=" + encodeURIComponent("get_series");
+            _context20.n = 2;
+            return fetchJson(url);
+          case 2:
+            items = _context20.v;
+            return _context20.a(2, Array.isArray(items) ? dedupeCatalogItems(items) : []);
+        }
+      }, _callee20);
+    }));
+    return _fetchAllSeriesItems.apply(this, arguments);
+  }
+  function fetchCatalogItemsForCategory(_x11, _x12) {
+    return _fetchCatalogItemsForCategory.apply(this, arguments);
+  }
+  function _fetchCatalogItemsForCategory() {
+    _fetchCatalogItemsForCategory = _asyncToGenerator(_regenerator().m(function _callee21(type, categoryId) {
+      var demoItems, actionMap, url, items;
+      return _regenerator().w(function (_context21) {
+        while (1) switch (_context21.n) {
+          case 0:
+            if (!state.selectedServer.isDemo) {
+              _context21.n = 1;
+              break;
+            }
             demoItems = SAMPLE_LIBRARY[type].itemsByCategory[categoryId] || [];
-            return _context20.a(2, clone(demoItems));
+            return _context21.a(2, clone(demoItems));
           case 1:
             actionMap = {
               live: "get_live_streams",
@@ -4063,13 +4110,13 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               series: "get_series"
             };
             url = state.selectedServer.baseUrl + "/player_api.php?username=" + encodeURIComponent(state.selectedServer.username) + "&password=" + encodeURIComponent(state.selectedServer.password) + "&action=" + encodeURIComponent(actionMap[type]) + "&category_id=" + encodeURIComponent(categoryId);
-            _context20.n = 2;
+            _context21.n = 2;
             return fetchJson(url);
           case 2:
-            items = _context20.v;
-            return _context20.a(2, Array.isArray(items) ? items : []);
+            items = _context21.v;
+            return _context21.a(2, Array.isArray(items) ? items : []);
         }
-      }, _callee20);
+      }, _callee21);
     }));
     return _fetchCatalogItemsForCategory.apply(this, arguments);
   }
@@ -6586,36 +6633,36 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     }
     return value;
   }
-  function runMediaHubAction(_x12) {
+  function runMediaHubAction(_x13) {
     return _runMediaHubAction.apply(this, arguments);
   }
   function _runMediaHubAction() {
-    _runMediaHubAction = _asyncToGenerator(_regenerator().m(function _callee21(actionId) {
-      return _regenerator().w(function (_context21) {
-        while (1) switch (_context21.n) {
+    _runMediaHubAction = _asyncToGenerator(_regenerator().m(function _callee22(actionId) {
+      return _regenerator().w(function (_context22) {
+        while (1) switch (_context22.n) {
           case 0:
             if (!(actionId === "xtream" || actionId === "m3u" || actionId === "video" || actionId === "photo")) {
-              _context21.n = 1;
+              _context22.n = 1;
               break;
             }
             openMediaInputPrompt(actionId);
-            return _context21.a(2);
+            return _context22.a(2);
           case 1:
             if (!(actionId === "clear")) {
-              _context21.n = 3;
+              _context22.n = 3;
               break;
             }
             if (state.media.items.length) {
-              _context21.n = 2;
+              _context22.n = 2;
               break;
             }
             showToast("A galeria ja esta vazia nesta TV.", "error");
-            return _context21.a(2);
+            return _context22.a(2);
           case 2:
             clearMediaGallery();
             renderMediaHubScreen();
             showToast("Galeria limpa com sucesso.", "success");
-            return _context21.a(2);
+            return _context22.a(2);
           case 3:
             if (actionId === "logout") {
               clearSession();
@@ -6623,9 +6670,9 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               showToast("Voltamos para a tela de codigo.", "success");
             }
           case 4:
-            return _context21.a(2);
+            return _context22.a(2);
         }
-      }, _callee21);
+      }, _callee22);
     }));
     return _runMediaHubAction.apply(this, arguments);
   }
@@ -6710,102 +6757,102 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     }
     return null;
   }
-  function runHomeAction(_x13) {
+  function runHomeAction(_x14) {
     return _runHomeAction.apply(this, arguments);
   }
   function _runHomeAction() {
-    _runHomeAction = _asyncToGenerator(_regenerator().m(function _callee22(actionId) {
-      return _regenerator().w(function (_context22) {
-        while (1) switch (_context22.n) {
+    _runHomeAction = _asyncToGenerator(_regenerator().m(function _callee23(actionId) {
+      return _regenerator().w(function (_context23) {
+        while (1) switch (_context23.n) {
           case 0:
             if (!(actionId === "favorites")) {
-              _context22.n = 1;
+              _context23.n = 1;
               break;
             }
             openCatalog(FAVORITES_CATALOG_TYPE);
-            return _context22.a(2);
+            return _context23.a(2);
           case 1:
             if (!(actionId === "settings")) {
-              _context22.n = 2;
+              _context23.n = 2;
               break;
             }
             state.settingsIndex = 0;
             setScreen("settings");
-            return _context22.a(2);
+            return _context23.a(2);
           case 2:
             if (!(actionId === "change-server")) {
-              _context22.n = 3;
+              _context23.n = 3;
               break;
             }
             setScreen("servers");
-            return _context22.a(2);
+            return _context23.a(2);
           case 3:
             if (!(actionId === "refresh")) {
-              _context22.n = 4;
+              _context23.n = 4;
               break;
             }
-            _context22.n = 4;
+            _context23.n = 4;
             return refreshSelectedServerData({
               loadingText: "Atualizando a tela inicial...",
               successMessage: "Tela inicial atualizada com os dados mais recentes."
             });
           case 4:
-            return _context22.a(2);
+            return _context23.a(2);
         }
-      }, _callee22);
+      }, _callee23);
     }));
     return _runHomeAction.apply(this, arguments);
   }
   var confirmacaoDeLimpeza = 0;
-  function runSettingsAction(_x14) {
+  function runSettingsAction(_x15) {
     return _runSettingsAction.apply(this, arguments);
   }
   function _runSettingsAction() {
-    _runSettingsAction = _asyncToGenerator(_regenerator().m(function _callee23(actionId) {
-      return _regenerator().w(function (_context23) {
-        while (1) switch (_context23.n) {
+    _runSettingsAction = _asyncToGenerator(_regenerator().m(function _callee24(actionId) {
+      return _regenerator().w(function (_context24) {
+        while (1) switch (_context24.n) {
           case 0:
             if (!(actionId === "refresh")) {
-              _context23.n = 2;
+              _context24.n = 2;
               break;
             }
-            _context23.n = 1;
+            _context24.n = 1;
             return refreshSelectedServerData({
               loadingText: "Atualizando configuracoes e servidor...",
               successMessage: "Configuracoes sincronizadas com sucesso."
             });
           case 1:
-            return _context23.a(2);
+            return _context24.a(2);
           case 2:
             if (!(actionId === "parental")) {
-              _context23.n = 3;
+              _context24.n = 3;
               break;
             }
             abrirSenhaParental("atual", null);
-            return _context23.a(2);
+            return _context24.a(2);
           case 3:
             if (!(actionId === "renovar")) {
-              _context23.n = 4;
+              _context24.n = 4;
               break;
             }
             abrirRenovacao(false);
-            return _context23.a(2);
+            return _context24.a(2);
           case 4:
             if (!(actionId === "limpar")) {
-              _context23.n = 6;
+              _context24.n = 6;
               break;
             }
             if (!(!confirmacaoDeLimpeza || Date.now() - confirmacaoDeLimpeza > 5000)) {
-              _context23.n = 5;
+              _context24.n = 5;
               break;
             }
             confirmacaoDeLimpeza = Date.now();
             showToast("Pressione OK de novo para apagar a lista de assistidos.", "success");
-            return _context23.a(2);
+            return _context24.a(2);
           case 5:
             confirmacaoDeLimpeza = 0;
             limparAssistidos();
-            return _context23.a(2);
+            return _context24.a(2);
           case 6:
             if (actionId === "logout") {
               controleParentalLiberado = false;
@@ -6815,9 +6862,9 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               showToast("Sessao removida desta TV.", "success");
             }
           case 7:
-            return _context23.a(2);
+            return _context24.a(2);
         }
-      }, _callee23);
+      }, _callee24);
     }));
     return _runSettingsAction.apply(this, arguments);
   }
@@ -7478,7 +7525,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
   }
   function renderHomeScreen() {
     dom.homeTitle.textContent = "Tropical Play";
-    dom.heroMeta.innerHTML = [metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"), metaCard("Expira em", formatDate(state.profile && state.profile.expiresAt))].join("");
+    dom.heroMeta.innerHTML = [metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"), metaCard("Expira em", textoDoVencimentoNoPainel(state.selectedServer))].join("");
     dom.homeCards.innerHTML = HOME_CARDS.map(function (card) {
       return '<div class="home-card ' + escapeHtml(card.className) + '">' + '<div class="home-card-top">' + '<div class="card-icon-shell">' + '<img aria-hidden="true" role="presentation" class="card-icon" src="' + escapeHtml(card.icon) + '" alt="' + escapeHtml(card.displayTitle || card.title) + '">' + "</div>" + '<div class="card-count-badge">' + escapeHtml(contentCountLabel(card.id)) + "</div></div>" + '<div class="home-card-body">' + '<p class="card-title card-title-main">' + escapeHtml(card.displayTitle || card.title) + "</p>" + '<p class="card-copy">' + escapeHtml(card.teaser || card.subtitle) + "</p>" + "</div></div>";
     }).join("");
@@ -7755,30 +7802,30 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     var ms = Date.parse(texto);
     return Number.isNaN(ms) ? 0 : ms;
   }
-  function buscarProgramacao(_x15) {
+  function buscarProgramacao(_x16) {
     return _buscarProgramacao.apply(this, arguments);
   }
   function _buscarProgramacao() {
-    _buscarProgramacao = _asyncToGenerator(_regenerator().m(function _callee24(item) {
+    _buscarProgramacao = _asyncToGenerator(_regenerator().m(function _callee25(item) {
       var servidor, url, resposta, registros, agora;
-      return _regenerator().w(function (_context24) {
-        while (1) switch (_context24.n) {
+      return _regenerator().w(function (_context25) {
+        while (1) switch (_context25.n) {
           case 0:
             servidor = state.selectedServer;
             if (!(!servidor || servidor.isDemo || !item || !item.stream_id)) {
-              _context24.n = 1;
+              _context25.n = 1;
               break;
             }
-            return _context24.a(2, []);
+            return _context25.a(2, []);
           case 1:
             url = servidor.baseUrl + "/player_api.php?username=" + encodeURIComponent(servidor.username) + "&password=" + encodeURIComponent(servidor.password) + "&action=get_short_epg&limit=4&stream_id=" + encodeURIComponent(item.stream_id);
-            _context24.n = 2;
+            _context25.n = 2;
             return fetchJson(url);
           case 2:
-            resposta = _context24.v;
+            resposta = _context25.v;
             registros = resposta && Array.isArray(resposta.epg_listings) ? resposta.epg_listings : [];
             agora = Date.now();
-            return _context24.a(2, registros.map(function (registro) {
+            return _context25.a(2, registros.map(function (registro) {
               return {
                 titulo: textoDoEpg(registro.title),
                 descricao: textoDoEpg(registro.description),
@@ -7791,7 +7838,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               return a.inicio - b.inicio;
             }));
         }
-      }, _callee24);
+      }, _callee25);
     }));
     return _buscarProgramacao.apply(this, arguments);
   }
@@ -8275,46 +8322,46 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       runSessionConflictAction(isUseHere ? "useHere" : "cancel");
     }
   }
-  function runSessionConflictAction(_x16) {
+  function runSessionConflictAction(_x17) {
     return _runSessionConflictAction.apply(this, arguments);
   }
   function _runSessionConflictAction() {
-    _runSessionConflictAction = _asyncToGenerator(_regenerator().m(function _callee25(actionId) {
+    _runSessionConflictAction = _asyncToGenerator(_regenerator().m(function _callee26(actionId) {
       var mode, code, result;
-      return _regenerator().w(function (_context25) {
-        while (1) switch (_context25.n) {
+      return _regenerator().w(function (_context26) {
+        while (1) switch (_context26.n) {
           case 0:
             mode = state.sessionConflict.mode;
             code = state.sessionConflict.code;
             if (!(actionId !== "useHere")) {
-              _context25.n = 1;
+              _context26.n = 1;
               break;
             }
             closeSessionConflict();
             if (mode === "transferred") {
               handleSessionTransferredToOtherDevice(code);
             }
-            return _context25.a(2);
+            return _context26.a(2);
           case 1:
             closeSessionConflict();
             showLoading("Assumindo acesso nesta TV...");
-            _context25.n = 2;
+            _context26.n = 2;
             return forceDeviceAccess(code);
           case 2:
-            result = _context25.v;
+            result = _context26.v;
             hideLoading();
             if (!(!result.allowed || !result.profile)) {
-              _context25.n = 3;
+              _context26.n = 3;
               break;
             }
             showToast(result.message || "Nao foi possivel assumir este ponto agora.", "error");
             if (mode === "transferred") {
               handleSessionTransferredToOtherDevice(code);
             }
-            return _context25.a(2);
+            return _context26.a(2);
           case 3:
             if (!(mode === "transferred")) {
-              _context25.n = 4;
+              _context26.n = 4;
               break;
             }
             state.profile = result.profile;
@@ -8324,13 +8371,13 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify(result.profile));
             startSessionHeartbeat(code);
             showToast("Este dispositivo voltou a usar o ponto.", "success");
-            return _context25.a(2);
+            return _context26.a(2);
           case 4:
             completeAccessLogin(result.profile, code);
           case 5:
-            return _context25.a(2);
+            return _context26.a(2);
         }
-      }, _callee25);
+      }, _callee26);
     }));
     return _runSessionConflictAction.apply(this, arguments);
   }
@@ -8699,25 +8746,25 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _hideLoading.apply(this, arguments);
   }
   function _hideLoading() {
-    _hideLoading = _asyncToGenerator(_regenerator().m(function _callee26() {
+    _hideLoading = _asyncToGenerator(_regenerator().m(function _callee27() {
       var requestId, remainingMs;
-      return _regenerator().w(function (_context26) {
-        while (1) switch (_context26.n) {
+      return _regenerator().w(function (_context27) {
+        while (1) switch (_context27.n) {
           case 0:
             requestId = state.loadingRequestId;
             remainingMs = Math.max(0, (state.loadingMinUntil || 0) - Date.now());
             if (!(remainingMs > 0)) {
-              _context26.n = 1;
+              _context27.n = 1;
               break;
             }
-            _context26.n = 1;
+            _context27.n = 1;
             return waitForDelay(remainingMs);
           case 1:
             if (!(requestId !== state.loadingRequestId)) {
-              _context26.n = 2;
+              _context27.n = 2;
               break;
             }
-            return _context26.a(2);
+            return _context27.a(2);
           case 2:
             clearLoadingTicker();
             clearLoadingWatchdog();
@@ -8727,9 +8774,9 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             state.loadingCountdownSeconds = 0;
             renderLoading();
           case 3:
-            return _context26.a(2);
+            return _context27.a(2);
         }
-      }, _callee26);
+      }, _callee27);
     }));
     return _hideLoading.apply(this, arguments);
   }
@@ -9294,36 +9341,36 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       item.cover = detail.cover;
     }
   }
-  function ensureCatalogItemDetail(_x17) {
+  function ensureCatalogItemDetail(_x18) {
     return _ensureCatalogItemDetail.apply(this, arguments);
   }
   function _ensureCatalogItemDetail() {
-    _ensureCatalogItemDetail = _asyncToGenerator(_regenerator().m(function _callee27(item) {
-      var type, itemId, cache, cachedState, detail, _t9;
-      return _regenerator().w(function (_context27) {
-        while (1) switch (_context27.p = _context27.n) {
+    _ensureCatalogItemDetail = _asyncToGenerator(_regenerator().m(function _callee28(item) {
+      var type, itemId, cache, cachedState, detail, _t0;
+      return _regenerator().w(function (_context28) {
+        while (1) switch (_context28.p = _context28.n) {
           case 0:
             if (!(!isPosterCatalogType(state.catalog.type) || !item || !state.selectedServer || state.selectedServer.isDemo)) {
-              _context27.n = 1;
+              _context28.n = 1;
               break;
             }
-            return _context27.a(2);
+            return _context28.a(2);
           case 1:
             type = state.catalog.type;
             itemId = catalogItemId(item);
             cache = detailCacheForType(type);
             if (!(!cache || !itemId)) {
-              _context27.n = 2;
+              _context28.n = 2;
               break;
             }
-            return _context27.a(2);
+            return _context28.a(2);
           case 2:
             cachedState = cache[itemId];
             if (!(cachedState && (cachedState.loading || cachedState.loaded))) {
-              _context27.n = 3;
+              _context28.n = 3;
               break;
             }
-            return _context27.a(2);
+            return _context28.a(2);
           case 3:
             cache[itemId] = {
               loading: true,
@@ -9331,11 +9378,11 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               data: null,
               error: ""
             };
-            _context27.p = 4;
-            _context27.n = 5;
+            _context28.p = 4;
+            _context28.n = 5;
             return fetchCatalogItemDetail(type, item);
           case 5:
-            detail = _context27.v;
+            detail = _context28.v;
             cache[itemId] = {
               loading: false,
               loaded: true,
@@ -9343,17 +9390,17 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               error: ""
             };
             applyCatalogItemDetail(item, detail);
-            _context27.n = 7;
+            _context28.n = 7;
             break;
           case 6:
-            _context27.p = 6;
-            _t9 = _context27.v;
-            console.log("Catalog detail fetch failed:", _t9);
+            _context28.p = 6;
+            _t0 = _context28.v;
+            console.log("Catalog detail fetch failed:", _t0);
             cache[itemId] = {
               loading: false,
               loaded: true,
               data: {},
-              error: _t9 && _t9.message ? _t9.message : "detail-fetch-failed"
+              error: _t0 && _t0.message ? _t0.message : "detail-fetch-failed"
             };
           case 7:
             if (state.screen === "catalog" && isPosterCatalogDetailView() && catalogItemId(currentFocusedCatalogItem()) === itemId) {
@@ -9361,20 +9408,20 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               render();
             }
           case 8:
-            return _context27.a(2);
+            return _context28.a(2);
         }
-      }, _callee27, null, [[4, 6]]);
+      }, _callee28, null, [[4, 6]]);
     }));
     return _ensureCatalogItemDetail.apply(this, arguments);
   }
-  function fetchCatalogItemDetail(_x18, _x19) {
+  function fetchCatalogItemDetail(_x19, _x20) {
     return _fetchCatalogItemDetail.apply(this, arguments);
   }
   function _fetchCatalogItemDetail() {
-    _fetchCatalogItemDetail = _asyncToGenerator(_regenerator().m(function _callee28(type, item) {
+    _fetchCatalogItemDetail = _asyncToGenerator(_regenerator().m(function _callee29(type, item) {
       var actionMap, request, url, payload;
-      return _regenerator().w(function (_context28) {
-        while (1) switch (_context28.n) {
+      return _regenerator().w(function (_context29) {
+        while (1) switch (_context29.n) {
           case 0:
             actionMap = {
               movies: {
@@ -9390,19 +9437,19 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             };
             request = actionMap[type];
             if (!(!request || !request.value)) {
-              _context28.n = 1;
+              _context29.n = 1;
               break;
             }
-            return _context28.a(2, {});
+            return _context29.a(2, {});
           case 1:
             url = state.selectedServer.baseUrl + "/player_api.php?username=" + encodeURIComponent(state.selectedServer.username) + "&password=" + encodeURIComponent(state.selectedServer.password) + "&action=" + encodeURIComponent(request.action) + "&" + encodeURIComponent(request.param) + "=" + encodeURIComponent(request.value);
-            _context28.n = 2;
+            _context29.n = 2;
             return fetchJson(url);
           case 2:
-            payload = _context28.v;
-            return _context28.a(2, normalizeCatalogDetailPayload(payload));
+            payload = _context29.v;
+            return _context29.a(2, normalizeCatalogDetailPayload(payload));
         }
-      }, _callee28);
+      }, _callee29);
     }));
     return _fetchCatalogItemDetail.apply(this, arguments);
   }
@@ -9915,21 +9962,21 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _enviarDadosAoBanco.apply(this, arguments);
   }
   function _enviarDadosAoBanco() {
-    _enviarDadosAoBanco = _asyncToGenerator(_regenerator().m(function _callee29() {
-      var codigo, resposta, _t0;
-      return _regenerator().w(function (_context29) {
-        while (1) switch (_context29.p = _context29.n) {
+    _enviarDadosAoBanco = _asyncToGenerator(_regenerator().m(function _callee30() {
+      var codigo, resposta, _t1;
+      return _regenerator().w(function (_context30) {
+        while (1) switch (_context30.p = _context30.n) {
           case 0:
             sincronia.timer = null;
             codigo = codigoDaSincronia();
             if (!(!sincronia.pendente || !codigo || codigo === DEMO_CODE || sincronia.carregando)) {
-              _context29.n = 1;
+              _context30.n = 1;
               break;
             }
-            return _context29.a(2);
+            return _context30.a(2);
           case 1:
-            _context29.p = 1;
-            _context29.n = 2;
+            _context30.p = 1;
+            _context30.n = 2;
             return fetch(DADOS_NO_BANCO, {
               method: "POST",
               headers: {
@@ -9938,27 +9985,27 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               body: pacoteDosDados(codigo)
             });
           case 2:
-            resposta = _context29.v;
+            resposta = _context30.v;
             if (!resposta.ok) {
-              _context29.n = 3;
+              _context30.n = 3;
               break;
             }
             sincronia.pendente = false;
-            return _context29.a(2);
+            return _context30.a(2);
           case 3:
             console.log("Data sync refused:", resposta.status);
-            _context29.n = 5;
+            _context30.n = 5;
             break;
           case 4:
-            _context29.p = 4;
-            _t0 = _context29.v;
-            console.log("Data sync failed, retrying later:", _t0);
+            _context30.p = 4;
+            _t1 = _context30.v;
+            console.log("Data sync failed, retrying later:", _t1);
           case 5:
             agendarEnvioDosDados(60000);
           case 6:
-            return _context29.a(2);
+            return _context30.a(2);
         }
-      }, _callee29, null, [[1, 4]]);
+      }, _callee30, null, [[1, 4]]);
     }));
     return _enviarDadosAoBanco.apply(this, arguments);
   }
@@ -9982,45 +10029,45 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _sincronizarDadosAoEntrar.apply(this, arguments);
   }
   function _sincronizarDadosAoEntrar() {
-    _sincronizarDadosAoEntrar = _asyncToGenerator(_regenerator().m(function _callee30() {
-      var codigo, resposta, remoto, donoLocal, localEDesteCodigo, editadoLocal, temLocal, remotoVazio, _t1, _t10;
-      return _regenerator().w(function (_context30) {
-        while (1) switch (_context30.p = _context30.n) {
+    _sincronizarDadosAoEntrar = _asyncToGenerator(_regenerator().m(function _callee31() {
+      var codigo, resposta, remoto, donoLocal, localEDesteCodigo, editadoLocal, temLocal, remotoVazio, _t10, _t11;
+      return _regenerator().w(function (_context31) {
+        while (1) switch (_context31.p = _context31.n) {
           case 0:
             codigo = codigoDaSincronia();
             if (!(!codigo || codigo === DEMO_CODE || sincronia.codigo === codigo || sincronia.carregando)) {
-              _context30.n = 1;
+              _context31.n = 1;
               break;
             }
-            return _context30.a(2);
+            return _context31.a(2);
           case 1:
             sincronia.carregando = true;
-            _context30.p = 2;
-            _context30.n = 3;
+            _context31.p = 2;
+            _context31.n = 3;
             return fetch(DADOS_NO_BANCO + "?code=" + encodeURIComponent(codigo), {
               method: "GET"
             });
           case 3:
-            resposta = _context30.v;
+            resposta = _context31.v;
             if (!resposta.ok) {
-              _context30.n = 5;
+              _context31.n = 5;
               break;
             }
-            _context30.n = 4;
+            _context31.n = 4;
             return resposta.json();
           case 4:
-            _t1 = _context30.v;
-            _context30.n = 6;
+            _t10 = _context31.v;
+            _context31.n = 6;
             break;
           case 5:
-            _t1 = null;
+            _t10 = null;
           case 6:
-            remoto = _t1;
+            remoto = _t10;
             if (!(!remoto || !remoto.ok || codigoDaSincronia() !== codigo)) {
-              _context30.n = 7;
+              _context31.n = 7;
               break;
             }
-            return _context30.a(2);
+            return _context31.a(2);
           case 7:
             sincronia.codigo = codigo;
             donoLocal = "";
@@ -10034,7 +10081,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             temLocal = (state.favorites || []).length || (state.playbackHistory || []).length;
             remotoVazio = !/[^\[\]\s]/.test(String(remoto.favoritos || "")) && !/[^\[\]\s]/.test(String(remoto.historico || ""));
             if (!(remotoVazio && temLocal && localEDesteCodigo)) {
-              _context30.n = 8;
+              _context31.n = 8;
               break;
             }
             try {
@@ -10045,14 +10092,14 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             }
             sincronia.pendente = true;
             agendarEnvioDosDados(1500);
-            return _context30.a(2);
+            return _context31.a(2);
           case 8:
             if (!(remoto.em > editadoLocal || !localEDesteCodigo)) {
-              _context30.n = 9;
+              _context31.n = 9;
               break;
             }
             aplicarDadosDoBanco(remoto, codigo);
-            return _context30.a(2);
+            return _context31.a(2);
           case 9:
             if (temLocal && editadoLocal >= remoto.em) {
               if (!editadoLocal) {
@@ -10070,20 +10117,20 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               sincronia.pendente = true;
               agendarEnvioDosDados(1500);
             }
-            _context30.n = 11;
+            _context31.n = 11;
             break;
           case 10:
-            _context30.p = 10;
-            _t10 = _context30.v;
-            console.log("Data load from Firebase skipped:", _t10);
+            _context31.p = 10;
+            _t11 = _context31.v;
+            console.log("Data load from Firebase skipped:", _t11);
           case 11:
-            _context30.p = 11;
+            _context31.p = 11;
             sincronia.carregando = false;
-            return _context30.f(11);
+            return _context31.f(11);
           case 12:
-            return _context30.a(2);
+            return _context31.a(2);
         }
-      }, _callee30, null, [[2, 10, 11, 12]]);
+      }, _callee31, null, [[2, 10, 11, 12]]);
     }));
     return _sincronizarDadosAoEntrar.apply(this, arguments);
   }
@@ -10177,21 +10224,21 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     var d = new Date(ms);
     return ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear();
   }
-  function pedirJsonComPrazo(_x20, _x21) {
+  function pedirJsonComPrazo(_x21, _x22) {
     return _pedirJsonComPrazo.apply(this, arguments);
   }
   function _pedirJsonComPrazo() {
-    _pedirJsonComPrazo = _asyncToGenerator(_regenerator().m(function _callee31(url, prazoMs) {
-      var controle, corte, resposta, dados, _t11;
-      return _regenerator().w(function (_context31) {
-        while (1) switch (_context31.p = _context31.n) {
+    _pedirJsonComPrazo = _asyncToGenerator(_regenerator().m(function _callee32(url, prazoMs) {
+      var controle, corte, resposta, dados, _t12;
+      return _regenerator().w(function (_context32) {
+        while (1) switch (_context32.p = _context32.n) {
           case 0:
             controle = typeof AbortController === "function" ? new AbortController() : null;
             corte = controle ? setTimeout(function () {
               controle.abort();
             }, prazoMs) : null;
-            _context31.p = 1;
-            _context31.n = 2;
+            _context32.p = 1;
+            _context32.n = 2;
             return fetch(url, {
               method: "GET",
               headers: {
@@ -10200,33 +10247,33 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               signal: controle ? controle.signal : undefined
             });
           case 2:
-            resposta = _context31.v;
+            resposta = _context32.v;
             dados = null;
-            _context31.p = 3;
-            _context31.n = 4;
+            _context32.p = 3;
+            _context32.n = 4;
             return resposta.json();
           case 4:
-            dados = _context31.v;
-            _context31.n = 6;
+            dados = _context32.v;
+            _context32.n = 6;
             break;
           case 5:
-            _context31.p = 5;
-            _t11 = _context31.v;
+            _context32.p = 5;
+            _t12 = _context32.v;
             dados = null;
           case 6:
-            return _context31.a(2, {
+            return _context32.a(2, {
               status: resposta.status,
               ok: resposta.ok,
               dados: dados
             });
           case 7:
-            _context31.p = 7;
+            _context32.p = 7;
             if (corte) clearTimeout(corte);
-            return _context31.f(7);
+            return _context32.f(7);
           case 8:
-            return _context31.a(2);
+            return _context32.a(2);
         }
-      }, _callee31, null, [[3, 5], [1,, 7, 8]]);
+      }, _callee32, null, [[3, 5], [1,, 7, 8]]);
     }));
     return _pedirJsonComPrazo.apply(this, arguments);
   }
@@ -10291,33 +10338,33 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       detalhe: ""
     };
   }
-  function verificarServidor(_x22) {
+  function verificarServidor(_x23) {
     return _verificarServidor.apply(this, arguments);
   }
   function _verificarServidor() {
-    _verificarServidor = _asyncToGenerator(_regenerator().m(function _callee32(server) {
-      var parsed, url, diretoFalhou, direto, pelaPonte, status, _t12, _t13, _t14, _t15;
-      return _regenerator().w(function (_context32) {
-        while (1) switch (_context32.p = _context32.n) {
+    _verificarServidor = _asyncToGenerator(_regenerator().m(function _callee33(server) {
+      var parsed, url, diretoFalhou, direto, pelaPonte, status, _t13, _t14, _t15, _t16;
+      return _regenerator().w(function (_context33) {
+        while (1) switch (_context33.p = _context33.n) {
           case 0:
-            _context32.p = 0;
+            _context33.p = 0;
             parsed = parseServer(server);
-            _context32.n = 2;
+            _context33.n = 2;
             break;
           case 1:
-            _context32.p = 1;
-            _t12 = _context32.v;
-            return _context32.a(2, {
+            _context33.p = 1;
+            _t13 = _context33.v;
+            return _context33.a(2, {
               estado: "erro",
               rotulo: "Cadastro incompleto",
               detalhe: "O endereco deste servidor esta incorreto. Fale com o suporte."
             });
           case 2:
             if (!parsed.isDemo) {
-              _context32.n = 3;
+              _context33.n = 3;
               break;
             }
-            return _context32.a(2, {
+            return _context33.a(2, {
               estado: "online",
               rotulo: "Online",
               detalhe: ""
@@ -10326,102 +10373,102 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             url = parsed.baseUrl + "/player_api.php?username=" + encodeURIComponent(parsed.username) + "&password=" + encodeURIComponent(parsed.password);
             diretoFalhou = false;
             if (!(!pedidoMisto(url) && !usarPonteParaEsteServidor(url))) {
-              _context32.n = 12;
+              _context33.n = 12;
               break;
             }
-            _context32.p = 4;
-            _context32.n = 5;
+            _context33.p = 4;
+            _context33.n = 5;
             return pedirJsonComPrazo(url, 9000);
           case 5:
-            direto = _context32.v;
+            direto = _context33.v;
             if (!(direto.dados && direto.dados.user_info)) {
-              _context32.n = 6;
+              _context33.n = 6;
               break;
             }
-            return _context32.a(2, statusPelosDadosDoPainel(direto.dados));
+            return _context33.a(2, statusPelosDadosDoPainel(direto.dados));
           case 6:
             if (!(direto.status === 401 || direto.status === 403)) {
-              _context32.n = 7;
+              _context33.n = 7;
               break;
             }
-            return _context32.a(2, {
+            return _context33.a(2, {
               estado: "erro",
               rotulo: "Usuario nao reconhecido",
               detalhe: "O servidor nao aceitou este usuario. Fale com o suporte para conferir."
             });
           case 7:
             diretoFalhou = true;
-            _context32.n = 9;
+            _context33.n = 9;
             break;
           case 8:
-            _context32.p = 8;
-            _t13 = _context32.v;
+            _context33.p = 8;
+            _t14 = _context33.v;
             diretoFalhou = true;
           case 9:
-            _t14 = diretoFalhou;
-            if (!_t14) {
-              _context32.n = 11;
+            _t15 = diretoFalhou;
+            if (!_t15) {
+              _context33.n = 11;
               break;
             }
-            _context32.n = 10;
+            _context33.n = 10;
             return painelRespondeSemCors(url);
           case 10:
-            _t14 = _context32.v;
+            _t15 = _context33.v;
           case 11:
-            if (!_t14) {
-              _context32.n = 12;
+            if (!_t15) {
+              _context33.n = 12;
               break;
             }
             diretoFalhou = false;
             marcarServidorPelaPonte(url);
           case 12:
             pelaPonte = null;
-            _context32.p = 13;
-            _context32.n = 14;
+            _context33.p = 13;
+            _context33.n = 14;
             return pedirJsonComPrazo(urlPelaPonte(url), 15000);
           case 14:
-            pelaPonte = _context32.v;
-            _context32.n = 16;
+            pelaPonte = _context33.v;
+            _context33.n = 16;
             break;
           case 15:
-            _context32.p = 15;
-            _t15 = _context32.v;
+            _context33.p = 15;
+            _t16 = _context33.v;
             pelaPonte = null;
           case 16:
             if (!(pelaPonte && pelaPonte.dados && pelaPonte.dados.user_info)) {
-              _context32.n = 18;
+              _context33.n = 18;
               break;
             }
             status = statusPelosDadosDoPainel(pelaPonte.dados);
             if (!(diretoFalhou && (status.estado === "online" || status.estado === "aviso"))) {
-              _context32.n = 17;
+              _context33.n = 17;
               break;
             }
-            return _context32.a(2, {
+            return _context33.a(2, {
               estado: "bloqueio",
               rotulo: "Possivel bloqueio na internet",
               detalhe: "O servidor esta no ar, mas esta rede nao deixa conectar. Teste outro Wi-Fi ou os dados do celular."
             });
           case 17:
-            return _context32.a(2, status);
+            return _context33.a(2, status);
           case 18:
             if (!(pelaPonte && pelaPonte.dados && pelaPonte.dados.erro === "acesso vencido")) {
-              _context32.n = 19;
+              _context33.n = 19;
               break;
             }
-            return _context32.a(2, {
+            return _context33.a(2, {
               estado: "vencido",
               rotulo: "Plano vencido",
               detalhe: "Seu plano Tropical Play venceu. Renove para voltar a assistir."
             });
           case 19:
-            return _context32.a(2, {
+            return _context33.a(2, {
               estado: "fora",
               rotulo: "Servidor sem resposta",
               detalhe: "O servidor nao respondeu agora. Pode ser instabilidade dele: tente de novo em alguns minutos."
             });
         }
-      }, _callee32, null, [[13, 15], [4, 8], [0, 1]]);
+      }, _callee33, null, [[13, 15], [4, 8], [0, 1]]);
     }));
     return _verificarServidor.apply(this, arguments);
   }
@@ -10733,14 +10780,14 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     fecharSenhaParental();
     showToast("Senha do controle parental alterada.", "success");
   }
-  function salvarSenhaNoBanco(_x23, _x24) {
+  function salvarSenhaNoBanco(_x24, _x25) {
     return _salvarSenhaNoBanco.apply(this, arguments);
   }
   function _salvarSenhaNoBanco() {
-    _salvarSenhaNoBanco = _asyncToGenerator(_regenerator().m(function _callee33(atual, nova) {
-      var codigo, resposta, _t16;
-      return _regenerator().w(function (_context33) {
-        while (1) switch (_context33.p = _context33.n) {
+    _salvarSenhaNoBanco = _asyncToGenerator(_regenerator().m(function _callee34(atual, nova) {
+      var codigo, resposta, _t17;
+      return _regenerator().w(function (_context34) {
+        while (1) switch (_context34.p = _context34.n) {
           case 0:
             codigo = codigoDaSincronia();
             if (state.profile) {
@@ -10752,13 +10799,13 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               }
             }
             if (!(!codigo || codigo === DEMO_CODE)) {
-              _context33.n = 1;
+              _context34.n = 1;
               break;
             }
-            return _context33.a(2);
+            return _context34.a(2);
           case 1:
-            _context33.p = 1;
-            _context33.n = 2;
+            _context34.p = 1;
+            _context34.n = 2;
             return fetch(DADOS_NO_BANCO, {
               method: "POST",
               headers: {
@@ -10772,20 +10819,20 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               })
             });
           case 2:
-            resposta = _context33.v;
+            resposta = _context34.v;
             if (!resposta.ok) {
               console.log("Parental PIN sync refused:", resposta.status);
             }
-            _context33.n = 4;
+            _context34.n = 4;
             break;
           case 3:
-            _context33.p = 3;
-            _t16 = _context33.v;
-            console.log("Parental PIN sync failed:", _t16);
+            _context34.p = 3;
+            _t17 = _context34.v;
+            console.log("Parental PIN sync failed:", _t17);
           case 4:
-            return _context33.a(2);
+            return _context34.a(2);
         }
-      }, _callee33, null, [[1, 3]]);
+      }, _callee34, null, [[1, 3]]);
     }));
     return _salvarSenhaNoBanco.apply(this, arguments);
   }
@@ -10827,29 +10874,29 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _atualizarDadosDoPlano.apply(this, arguments);
   }
   function _atualizarDadosDoPlano() {
-    _atualizarDadosDoPlano = _asyncToGenerator(_regenerator().m(function _callee34() {
-      var profile, doc, data, pinDoBanco, novaData, _t17;
-      return _regenerator().w(function (_context34) {
-        while (1) switch (_context34.p = _context34.n) {
+    _atualizarDadosDoPlano = _asyncToGenerator(_regenerator().m(function _callee35() {
+      var profile, doc, data, pinDoBanco, novaData, _t18;
+      return _regenerator().w(function (_context35) {
+        while (1) switch (_context35.p = _context35.n) {
           case 0:
             profile = state.profile;
             if (!(!firestore || !profile || !profile.firestoreDocumentId || Date.now() - ultimaLeituraDoPlano < 60000)) {
-              _context34.n = 1;
+              _context35.n = 1;
               break;
             }
-            return _context34.a(2);
+            return _context35.a(2);
           case 1:
             ultimaLeituraDoPlano = Date.now();
-            _context34.p = 2;
-            _context34.n = 3;
+            _context35.p = 2;
+            _context35.n = 3;
             return firestore.collection("devices").doc(profile.firestoreDocumentId).get();
           case 3:
-            doc = _context34.v;
+            doc = _context35.v;
             if (!(!doc.exists || state.profile !== profile)) {
-              _context34.n = 4;
+              _context35.n = 4;
               break;
             }
-            return _context34.a(2);
+            return _context35.a(2);
           case 4:
             data = doc.data() || {};
             pinDoBanco = data.msxParental && /^[0-9]{4}$/.test(String(data.msxParental.pin || "")) ? String(data.msxParental.pin) : "";
@@ -10866,16 +10913,16 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
                 renderSettingsScreen();
               }
             }
-            _context34.n = 6;
+            _context35.n = 6;
             break;
           case 5:
-            _context34.p = 5;
-            _t17 = _context34.v;
-            console.log("Plan refresh skipped:", _t17);
+            _context35.p = 5;
+            _t18 = _context35.v;
+            console.log("Plan refresh skipped:", _t18);
           case 6:
-            return _context34.a(2);
+            return _context35.a(2);
         }
-      }, _callee34, null, [[2, 5]]);
+      }, _callee35, null, [[2, 5]]);
     }));
     return _atualizarDadosDoPlano.apply(this, arguments);
   }
@@ -10883,24 +10930,24 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _carregarSuporte.apply(this, arguments);
   }
   function _carregarSuporte() {
-    _carregarSuporte = _asyncToGenerator(_regenerator().m(function _callee35() {
-      var suporte, doc, data, _t18;
-      return _regenerator().w(function (_context35) {
-        while (1) switch (_context35.p = _context35.n) {
+    _carregarSuporte = _asyncToGenerator(_regenerator().m(function _callee36() {
+      var suporte, doc, data, _t19;
+      return _regenerator().w(function (_context36) {
+        while (1) switch (_context36.p = _context36.n) {
           case 0:
             suporte = state.suporte;
             if (!(!firestore || suporte.carregando || suporte.carregado)) {
-              _context35.n = 1;
+              _context36.n = 1;
               break;
             }
-            return _context35.a(2);
+            return _context36.a(2);
           case 1:
             suporte.carregando = true;
-            _context35.p = 2;
-            _context35.n = 3;
+            _context36.p = 2;
+            _context36.n = 3;
             return firestore.collection("app_settings").doc("support_info").get();
           case 3:
-            doc = _context35.v;
+            doc = _context36.v;
             data = doc.exists ? doc.data() || {} : {};
             suporte.dados = data.isActive === true ? {
               email: String(data.supportEmail || data.email || ""),
@@ -10911,22 +10958,22 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               valor: String(data.supportValue || "")
             } : null;
             suporte.carregado = true;
-            _context35.n = 5;
+            _context36.n = 5;
             break;
           case 4:
-            _context35.p = 4;
-            _t18 = _context35.v;
-            console.log("Support info load failed:", _t18);
+            _context36.p = 4;
+            _t19 = _context36.v;
+            console.log("Support info load failed:", _t19);
           case 5:
-            _context35.p = 5;
+            _context36.p = 5;
             suporte.carregando = false;
-            return _context35.f(5);
+            return _context36.f(5);
           case 6:
             renderSuporte();
           case 7:
-            return _context35.a(2);
+            return _context36.a(2);
         }
-      }, _callee35, null, [[2, 4, 5, 6]]);
+      }, _callee36, null, [[2, 4, 5, 6]]);
     }));
     return _carregarSuporte.apply(this, arguments);
   }
@@ -10974,30 +11021,30 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _abrirPesquisaEmTodos.apply(this, arguments);
   }
   function _abrirPesquisaEmTodos() {
-    _abrirPesquisaEmTodos = _asyncToGenerator(_regenerator().m(function _callee36() {
+    _abrirPesquisaEmTodos = _asyncToGenerator(_regenerator().m(function _callee37() {
       var tipo, indiceDeTodos;
-      return _regenerator().w(function (_context36) {
-        while (1) switch (_context36.p = _context36.n) {
+      return _regenerator().w(function (_context37) {
+        while (1) switch (_context37.p = _context37.n) {
           case 0:
             if (!abrindoPesquisa) {
-              _context36.n = 1;
+              _context37.n = 1;
               break;
             }
-            return _context36.a(2);
+            return _context37.a(2);
           case 1:
             tipo = state.catalog.type;
             indiceDeTodos = currentCategories().findIndex(function (category) {
               return isAllPosterCategoryId(tipo, category && category.category_id ? category.category_id : "");
             });
             if (!(indiceDeTodos < 0)) {
-              _context36.n = 2;
+              _context37.n = 2;
               break;
             }
             showToast("A busca nao esta disponivel neste servidor.", "error");
-            return _context36.a(2);
+            return _context37.a(2);
           case 2:
             abrindoPesquisa = true;
-            _context36.p = 3;
+            _context37.p = 3;
             state.catalog.lupaFocada = false;
             state.catalog.view = "browse";
             state.catalog.zone = "items";
@@ -11010,27 +11057,27 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             state.catalog.detailKey = "";
             clearMovieSearchQuery();
             renderCatalogScreen();
-            _context36.n = 4;
+            _context37.n = 4;
             return ensureItemsForCategoryIndex(indiceDeTodos);
           case 4:
             if (!(state.screen !== "catalog" || state.catalog.type !== tipo || state.catalog.selectedCategoryIndex !== indiceDeTodos)) {
-              _context36.n = 5;
+              _context37.n = 5;
               break;
             }
-            return _context36.a(2);
+            return _context37.a(2);
           case 5:
             state.catalog.itemIndex = 0;
             state.catalog.selectedItemIndex = 0;
             renderCatalogScreen();
             openMovieSearchOverlay();
           case 6:
-            _context36.p = 6;
+            _context37.p = 6;
             abrindoPesquisa = false;
-            return _context36.f(6);
+            return _context37.f(6);
           case 7:
-            return _context36.a(2);
+            return _context37.a(2);
         }
-      }, _callee36, null, [[3,, 6, 7]]);
+      }, _callee37, null, [[3,, 6, 7]]);
     }));
     return _abrirPesquisaEmTodos.apply(this, arguments);
   }
@@ -11816,77 +11863,77 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return _submitMediaInputPrompt.apply(this, arguments);
   }
   function _submitMediaInputPrompt() {
-    _submitMediaInputPrompt = _asyncToGenerator(_regenerator().m(function _callee37() {
-      var prompt, fields, xtreamResult, m3uResult, videoResult, photoResult, _t19;
-      return _regenerator().w(function (_context37) {
-        while (1) switch (_context37.p = _context37.n) {
+    _submitMediaInputPrompt = _asyncToGenerator(_regenerator().m(function _callee38() {
+      var prompt, fields, xtreamResult, m3uResult, videoResult, photoResult, _t20;
+      return _regenerator().w(function (_context38) {
+        while (1) switch (_context38.p = _context38.n) {
           case 0:
             prompt = state.media.inputPrompt;
             fields = prompt.fields.reduce(function (accumulator, field) {
               accumulator[field.id] = String(field.value || "").trim();
               return accumulator;
             }, {});
-            _context37.p = 1;
+            _context38.p = 1;
             if (!(prompt.mode === "xtream")) {
-              _context37.n = 5;
+              _context38.n = 5;
               break;
             }
             if (!(!fields.server || !fields.username || !fields.password)) {
-              _context37.n = 2;
+              _context38.n = 2;
               break;
             }
             throw new Error("Preencha servidor, usuario e senha para continuar.");
           case 2:
             showLoading("Importando acesso Xtream...");
-            _context37.n = 3;
+            _context38.n = 3;
             return importXtreamToGallery(fields.server, fields.username, fields.password);
           case 3:
-            xtreamResult = _context37.v;
-            _context37.n = 4;
+            xtreamResult = _context38.v;
+            _context38.n = 4;
             return hideLoading();
           case 4:
             closeMediaInputPrompt();
             focusImportedMediaResult(xtreamResult);
             renderMediaHubScreen();
             showToast(mediaImportMessage(xtreamResult, "Acesso importado"), "success");
-            return _context37.a(2);
+            return _context38.a(2);
           case 5:
             if (fields.url) {
-              _context37.n = 6;
+              _context38.n = 6;
               break;
             }
             throw new Error("Informe a URL antes de salvar.");
           case 6:
             if (!(prompt.mode === "m3u")) {
-              _context37.n = 9;
+              _context38.n = 9;
               break;
             }
             showLoading("Baixando lista M3U...");
-            _context37.n = 7;
+            _context38.n = 7;
             return importM3uToGallery(fields.url, {
               sourceLabel: "Lista M3U",
               isLive: true
             });
           case 7:
-            m3uResult = _context37.v;
-            _context37.n = 8;
+            m3uResult = _context38.v;
+            _context38.n = 8;
             return hideLoading();
           case 8:
             closeMediaInputPrompt();
             focusImportedMediaResult(m3uResult);
             renderMediaHubScreen();
             showToast(mediaImportMessage(m3uResult, "Lista importada"), "success");
-            return _context37.a(2);
+            return _context38.a(2);
           case 9:
             if (!(prompt.mode === "video")) {
-              _context37.n = 10;
+              _context38.n = 10;
               break;
             }
             videoResult = addDirectVideoToGallery(fields.url);
             closeMediaInputPrompt();
             renderMediaHubScreen();
             showToast(mediaImportMessage(videoResult, "Video adicionado"), "success");
-            return _context37.a(2);
+            return _context38.a(2);
           case 10:
             if (prompt.mode === "photo") {
               photoResult = addDirectPhotoToGallery(fields.url);
@@ -11894,19 +11941,19 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               renderMediaHubScreen();
               showToast(mediaImportMessage(photoResult, "Foto adicionada"), "success");
             }
-            _context37.n = 13;
+            _context38.n = 13;
             break;
           case 11:
-            _context37.p = 11;
-            _t19 = _context37.v;
-            _context37.n = 12;
+            _context38.p = 11;
+            _t20 = _context38.v;
+            _context38.n = 12;
             return hideLoading();
           case 12:
-            showToast(_t19.message || "Nao foi possivel concluir essa entrada.", "error");
+            showToast(_t20.message || "Nao foi possivel concluir essa entrada.", "error");
           case 13:
-            return _context37.a(2);
+            return _context38.a(2);
         }
-      }, _callee37, null, [[1, 11]]);
+      }, _callee38, null, [[1, 11]]);
     }));
     return _submitMediaInputPrompt.apply(this, arguments);
   }
@@ -12030,85 +12077,85 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     }
     return result;
   }
-  function importM3uToGallery(_x25, _x26) {
+  function importM3uToGallery(_x26, _x27) {
     return _importM3uToGallery.apply(this, arguments);
   }
   function _importM3uToGallery() {
-    _importM3uToGallery = _asyncToGenerator(_regenerator().m(function _callee38(url, options) {
+    _importM3uToGallery = _asyncToGenerator(_regenerator().m(function _callee39(url, options) {
       var playlistUrl, playlistText, parsedItems, result;
-      return _regenerator().w(function (_context38) {
-        while (1) switch (_context38.n) {
+      return _regenerator().w(function (_context39) {
+        while (1) switch (_context39.n) {
           case 0:
             playlistUrl = String(url || "").trim();
             if (playlistUrl) {
-              _context38.n = 1;
+              _context39.n = 1;
               break;
             }
             throw new Error("Informe a URL da lista.");
           case 1:
-            _context38.n = 2;
+            _context39.n = 2;
             return fetchText(playlistUrl);
           case 2:
-            playlistText = _context38.v;
+            playlistText = _context39.v;
             parsedItems = parseM3uPlaylist(playlistText, playlistUrl, options || {});
             if (parsedItems.length) {
-              _context38.n = 3;
+              _context39.n = 3;
               break;
             }
             throw new Error("Nao encontramos itens reproduziveis nessa lista.");
           case 3:
             result = addMediaGalleryItems(parsedItems);
             if (result.added) {
-              _context38.n = 4;
+              _context39.n = 4;
               break;
             }
             throw new Error("Todos os itens dessa lista ja estavam na galeria.");
           case 4:
-            return _context38.a(2, result);
+            return _context39.a(2, result);
         }
-      }, _callee38);
+      }, _callee39);
     }));
     return _importM3uToGallery.apply(this, arguments);
   }
-  function importXtreamToGallery(_x27, _x28, _x29) {
+  function importXtreamToGallery(_x28, _x29, _x30) {
     return _importXtreamToGallery.apply(this, arguments);
   }
   function _importXtreamToGallery() {
-    _importXtreamToGallery = _asyncToGenerator(_regenerator().m(function _callee39(serverUrl, username, password) {
+    _importXtreamToGallery = _asyncToGenerator(_regenerator().m(function _callee40(serverUrl, username, password) {
       var baseUrl, authPayload, authFlag, categoriesUrl, liveStreamsUrl, categoriesPayload, liveStreamsPayload, categoryNameById, directItems, directResult;
-      return _regenerator().w(function (_context39) {
-        while (1) switch (_context39.n) {
+      return _regenerator().w(function (_context40) {
+        while (1) switch (_context40.n) {
           case 0:
             baseUrl = normalizeServerBaseUrl(serverUrl);
             if (baseUrl) {
-              _context39.n = 1;
+              _context40.n = 1;
               break;
             }
             throw new Error("Informe um servidor Xtream valido.");
           case 1:
-            _context39.n = 2;
+            _context40.n = 2;
             return fetchJson(baseUrl + "/player_api.php?username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password));
           case 2:
-            authPayload = _context39.v;
+            authPayload = _context40.v;
             authFlag = authPayload && authPayload.user_info && String(authPayload.user_info.auth) === "1";
             if (authFlag) {
-              _context39.n = 3;
+              _context40.n = 3;
               break;
             }
             throw new Error("O servidor respondeu, mas nao autenticou esse acesso.");
           case 3:
             categoriesUrl = baseUrl + "/player_api.php?username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password) + "&action=" + encodeURIComponent("get_live_categories");
             liveStreamsUrl = baseUrl + "/player_api.php?username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password) + "&action=" + encodeURIComponent("get_live_streams");
-            _context39.n = 4;
+            _context40.n = 4;
             return fetchJson(categoriesUrl).catch(function () {
               return [];
             });
           case 4:
-            categoriesPayload = _context39.v;
-            _context39.n = 5;
+            categoriesPayload = _context40.v;
+            _context40.n = 5;
             return fetchJson(liveStreamsUrl);
           case 5:
-            liveStreamsPayload = _context39.v;
+            liveStreamsPayload = _context40.v;
             categoryNameById = Object.create(null);
             if (Array.isArray(categoriesPayload)) {
               categoriesPayload.forEach(function (category) {
@@ -12120,7 +12167,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               });
             }
             if (!(Array.isArray(liveStreamsPayload) && liveStreamsPayload.length)) {
-              _context39.n = 7;
+              _context40.n = 7;
               break;
             }
             directItems = liveStreamsPayload.filter(function (item) {
@@ -12138,19 +12185,19 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             });
             directResult = addMediaGalleryItems(directItems);
             if (directResult.added) {
-              _context39.n = 6;
+              _context40.n = 6;
               break;
             }
             throw new Error("Todos os canais desse acesso ja estavam na galeria.");
           case 6:
-            return _context39.a(2, directResult);
+            return _context40.a(2, directResult);
           case 7:
-            return _context39.a(2, importM3uToGallery(baseUrl + "/get.php?username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password) + "&type=m3u_plus&output=ts", {
+            return _context40.a(2, importM3uToGallery(baseUrl + "/get.php?username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password) + "&type=m3u_plus&output=ts", {
               sourceLabel: safeHostname(baseUrl) || "Xtream",
               isLive: true
             }));
         }
-      }, _callee39);
+      }, _callee40);
     }));
     return _importXtreamToGallery.apply(this, arguments);
   }
@@ -12329,40 +12376,40 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       servidoresPelaPonte[origem] = true;
     }
   }
-  function painelRespondeSemCors(_x30) {
+  function painelRespondeSemCors(_x31) {
     return _painelRespondeSemCors.apply(this, arguments);
   }
   function _painelRespondeSemCors() {
-    _painelRespondeSemCors = _asyncToGenerator(_regenerator().m(function _callee40(url) {
-      var controle, corte, _t20;
-      return _regenerator().w(function (_context40) {
-        while (1) switch (_context40.p = _context40.n) {
+    _painelRespondeSemCors = _asyncToGenerator(_regenerator().m(function _callee41(url) {
+      var controle, corte, _t21;
+      return _regenerator().w(function (_context41) {
+        while (1) switch (_context41.p = _context41.n) {
           case 0:
             controle = typeof AbortController === "function" ? new AbortController() : null;
             corte = controle ? setTimeout(function () {
               controle.abort();
             }, 8000) : null;
-            _context40.p = 1;
-            _context40.n = 2;
+            _context41.p = 1;
+            _context41.n = 2;
             return fetch(url, {
               method: "GET",
               mode: "no-cors",
               signal: controle ? controle.signal : undefined
             });
           case 2:
-            return _context40.a(2, true);
+            return _context41.a(2, true);
           case 3:
-            _context40.p = 3;
-            _t20 = _context40.v;
-            return _context40.a(2, false);
+            _context41.p = 3;
+            _t21 = _context41.v;
+            return _context41.a(2, false);
           case 4:
-            _context40.p = 4;
+            _context41.p = 4;
             if (corte) clearTimeout(corte);
-            return _context40.f(4);
+            return _context41.f(4);
           case 5:
-            return _context40.a(2);
+            return _context41.a(2);
         }
-      }, _callee40, null, [[1, 3, 4, 5]]);
+      }, _callee41, null, [[1, 3, 4, 5]]);
     }));
     return _painelRespondeSemCors.apply(this, arguments);
   }
@@ -12370,17 +12417,17 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     var codigo = String(state.code || state.profile && state.profile.userNumber || "").trim();
     return PONTE_DAS_LISTAS + "?code=" + encodeURIComponent(codigo) + "&url=" + encodeURIComponent(url);
   }
-  function fetchWithTimeout(_x31, _x32) {
+  function fetchWithTimeout(_x32, _x33) {
     return _fetchWithTimeout.apply(this, arguments);
   }
   function _fetchWithTimeout() {
-    _fetchWithTimeout = _asyncToGenerator(_regenerator().m(function _callee41(url, acceptHeader) {
-      var controller, timeoutId, respondeSemCors, _t21;
-      return _regenerator().w(function (_context41) {
-        while (1) switch (_context41.p = _context41.n) {
+    _fetchWithTimeout = _asyncToGenerator(_regenerator().m(function _callee42(url, acceptHeader) {
+      var controller, timeoutId, respondeSemCors, _t22;
+      return _regenerator().w(function (_context42) {
+        while (1) switch (_context42.p = _context42.n) {
           case 0:
             if (isNetworkConnected()) {
-              _context41.n = 1;
+              _context42.n = 1;
               break;
             }
             showNetworkUnavailable("A TV esta sem conexao com a internet. Verifique a rede e tente novamente.");
@@ -12393,12 +12440,12 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
                 controller.abort();
               }, NETWORK_TIMEOUT_MS);
             }
-            _context41.p = 2;
+            _context42.p = 2;
             if (!(pedidoMisto(url) || usarPonteParaEsteServidor(url))) {
-              _context41.n = 4;
+              _context42.n = 4;
               break;
             }
-            _context41.n = 3;
+            _context42.n = 3;
             return fetch(urlPelaPonte(url), {
               method: "GET",
               headers: {
@@ -12407,9 +12454,9 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               signal: controller ? controller.signal : undefined
             });
           case 3:
-            return _context41.a(2, _context41.v);
+            return _context42.a(2, _context42.v);
           case 4:
-            _context41.n = 5;
+            _context42.n = 5;
             return fetch(url, {
               method: "GET",
               headers: {
@@ -12418,30 +12465,30 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               signal: controller ? controller.signal : undefined
             });
           case 5:
-            return _context41.a(2, _context41.v);
+            return _context42.a(2, _context42.v);
           case 6:
-            _context41.p = 6;
-            _t21 = _context41.v;
-            if (!(_t21 && _t21.name === "AbortError")) {
-              _context41.n = 7;
+            _context42.p = 6;
+            _t22 = _context42.v;
+            if (!(_t22 && _t22.name === "AbortError")) {
+              _context42.n = 7;
               break;
             }
             throw new Error("O servidor demorou demais para responder.");
           case 7:
             if (!(ehPedidoDeLista(url) && !pedidoMisto(url) && !usarPonteParaEsteServidor(url) && isNetworkConnected())) {
-              _context41.n = 10;
+              _context42.n = 10;
               break;
             }
-            _context41.n = 8;
+            _context42.n = 8;
             return painelRespondeSemCors(url);
           case 8:
-            respondeSemCors = _context41.v;
+            respondeSemCors = _context42.v;
             if (!respondeSemCors) {
-              _context41.n = 10;
+              _context42.n = 10;
               break;
             }
             marcarServidorPelaPonte(url);
-            _context41.n = 9;
+            _context42.n = 9;
             return fetch(urlPelaPonte(url), {
               method: "GET",
               headers: {
@@ -12449,61 +12496,36 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               }
             });
           case 9:
-            return _context41.a(2, _context41.v);
+            return _context42.a(2, _context42.v);
           case 10:
-            if (isNetworkError(_t21)) {
+            if (isNetworkError(_t22)) {
               showNetworkUnavailable("Nao foi possivel conectar. Verifique a internet da TV e tente novamente.");
             }
-            throw _t21;
+            throw _t22;
           case 11:
-            _context41.p = 11;
+            _context42.p = 11;
             if (timeoutId) {
               clearTimeout(timeoutId);
             }
-            return _context41.f(11);
+            return _context42.f(11);
           case 12:
-            return _context41.a(2);
+            return _context42.a(2);
         }
-      }, _callee41, null, [[2, 6, 11, 12]]);
+      }, _callee42, null, [[2, 6, 11, 12]]);
     }));
     return _fetchWithTimeout.apply(this, arguments);
   }
-  function fetchJson(_x33) {
+  function fetchJson(_x34) {
     return _fetchJson.apply(this, arguments);
   }
   function _fetchJson() {
-    _fetchJson = _asyncToGenerator(_regenerator().m(function _callee42(url) {
-      var response;
-      return _regenerator().w(function (_context42) {
-        while (1) switch (_context42.n) {
-          case 0:
-            _context42.n = 1;
-            return fetchWithTimeout(url, "application/json, text/plain, */*");
-          case 1:
-            response = _context42.v;
-            if (response.ok) {
-              _context42.n = 2;
-              break;
-            }
-            throw new Error("Servidor respondeu com status " + response.status);
-          case 2:
-            return _context42.a(2, response.json());
-        }
-      }, _callee42);
-    }));
-    return _fetchJson.apply(this, arguments);
-  }
-  function fetchText(_x34) {
-    return _fetchText.apply(this, arguments);
-  }
-  function _fetchText() {
-    _fetchText = _asyncToGenerator(_regenerator().m(function _callee43(url) {
+    _fetchJson = _asyncToGenerator(_regenerator().m(function _callee43(url) {
       var response;
       return _regenerator().w(function (_context43) {
         while (1) switch (_context43.n) {
           case 0:
             _context43.n = 1;
-            return fetchWithTimeout(url, "text/plain, application/vnd.apple.mpegurl, application/x-mpegURL, */*");
+            return fetchWithTimeout(url, "application/json, text/plain, */*");
           case 1:
             response = _context43.v;
             if (response.ok) {
@@ -12512,9 +12534,34 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             }
             throw new Error("Servidor respondeu com status " + response.status);
           case 2:
-            return _context43.a(2, response.text());
+            return _context43.a(2, response.json());
         }
       }, _callee43);
+    }));
+    return _fetchJson.apply(this, arguments);
+  }
+  function fetchText(_x35) {
+    return _fetchText.apply(this, arguments);
+  }
+  function _fetchText() {
+    _fetchText = _asyncToGenerator(_regenerator().m(function _callee44(url) {
+      var response;
+      return _regenerator().w(function (_context44) {
+        while (1) switch (_context44.n) {
+          case 0:
+            _context44.n = 1;
+            return fetchWithTimeout(url, "text/plain, application/vnd.apple.mpegurl, application/x-mpegURL, */*");
+          case 1:
+            response = _context44.v;
+            if (response.ok) {
+              _context44.n = 2;
+              break;
+            }
+            throw new Error("Servidor respondeu com status " + response.status);
+          case 2:
+            return _context44.a(2, response.text());
+        }
+      }, _callee44);
     }));
     return _fetchText.apply(this, arguments);
   }

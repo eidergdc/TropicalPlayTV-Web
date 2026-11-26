@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.6.1">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.6.2">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -21,16 +21,16 @@
         if (/[?&]legado=1/.test(location.search)) legado = true;
         if (legado) {
             document.documentElement.className += " app-legado";
-            document.write('<link rel="stylesheet" type="text/css" href="css/style-legado.css?v=1.6.1">');
+            document.write('<link rel="stylesheet" type="text/css" href="css/style-legado.css?v=1.6.2">');
             // 1.5.9: os complementos (Promise, Symbol, fetch...) entram AQUI, antes da
             // biblioteca do Firebase - carregados depois dela, o Firebase nao iniciava na
             // Samsung 2016 ("Firebase indisponivel no momento").
-            document.write('<script src="lib/legado/polyfills.js?v=1.6.1"><\/script>');
+            document.write('<script src="lib/legado/polyfills.js?v=1.6.2"><\/script>');
         }
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/' + (legado ? "antigas-legado" : "antigas") + '.css?v=1.6.1">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/' + (legado ? "antigas-legado" : "antigas") + '.css?v=1.6.2">');
     })();
     </script>
     <style>
@@ -153,11 +153,11 @@
         try { new Function("async function f() { await 0; } let a = 1; const b = 2;"); } catch (e) { moderno = false; }
         if (/[?&]legado=1/.test(location.search)) moderno = false;
         if (!moderno) {
-            document.write('<script src="./main-legado.js?v=1.6.1"><\/script>');
+            document.write('<script src="./main-legado.js?v=1.6.2"><\/script>');
         }
     })();
     </script>
-    <script src="./main.js?v=1.6.1" defer></script>
+    <script src="./main.js?v=1.6.2" defer></script>
 </head>
 <body>
     <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
