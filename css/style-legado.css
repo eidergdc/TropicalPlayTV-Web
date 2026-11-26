@@ -2571,6 +2571,13 @@ body[data-player-engine="avplay"] {
     background: rgba(3, 7, 12, 0.82);
 }
 
+/* 1.6.1: episodio sem imagem que abra - fundo neutro no lugar do icone quebrado. */
+.series-episode-thumb.sem-imagem {
+    background: linear-gradient(135deg, rgba(255, 144, 81, 0.16), rgba(16, 24, 36, 0.92) 60%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-sizing: border-box;
+}
+
 .series-episode-copy {
     display: -webkit-box;
     display: -webkit-flex;

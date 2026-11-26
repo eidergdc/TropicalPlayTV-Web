@@ -10,7 +10,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.6.0";
+    const APP_VERSION = "1.6.1";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -1434,7 +1434,46 @@
         }
     }
 
+    // Miniatura do episodio (1.6.1): o painel nem sempre manda a imagem de cada episodio, ou
+    // manda um endereco que nao abre, e a TV mostrava o icone de imagem quebrada. Agora a
+    // miniatura tenta a imagem do episodio, depois a capa da serie, e se nenhuma abrir vira um
+    // fundo neutro (sem icone quebrado). Quem troca e o vigiarMiniaturasQuebradas.
+    function miniaturaDoEpisodio(imagem, reserva) {
+        const principal = imagem || reserva;
+        if (!principal) return '<div aria-hidden="true" class="series-episode-thumb sem-imagem"></div>';
+        return (
+            '<img aria-hidden="true" role="presentation" class="series-episode-thumb" src="' +
+            escapeHtml(principal) +
+            '"' +
+            (reserva && reserva !== principal ? ' data-reserva="' + escapeHtml(reserva) + '"' : "") +
+            ' alt="">'
+        );
+    }
+
+    function vigiarMiniaturasQuebradas() {
+        // "error" de imagem nao sobe pela pagina: so a fase de captura enxerga.
+        document.addEventListener(
+            "error",
+            function (event) {
+                const img = event.target;
+                if (!img || img.tagName !== "IMG" || !img.classList || !img.classList.contains("series-episode-thumb")) return;
+                const reserva = img.getAttribute("data-reserva");
+                if (reserva) {
+                    img.removeAttribute("data-reserva");
+                    img.setAttribute("src", reserva);
+                    return;
+                }
+                const vazio = document.createElement("div");
+                vazio.className = "series-episode-thumb sem-imagem";
+                vazio.setAttribute("aria-hidden", "true");
+                if (img.parentNode) img.parentNode.replaceChild(vazio, img);
+            },
+            true
+        );
+    }
+
     function registerGlobalErrorHandlers() {
+        vigiarMiniaturasQuebradas();
         window.addEventListener("error", function (event) {
             console.log("Unhandled error:", event && event.error ? event.error : event);
             recoverFromMediaPromptFailure();
@@ -8915,9 +8954,7 @@
                             '<div class="series-episode-card' +
                             (index === state.catalog.seriesDetailEpisodeIndex ? " is-selected" : "") +
                             '">' +
-                            '<img aria-hidden="true" role="presentation" class="series-episode-thumb" src="' +
-                            escapeHtml(firstNonEmpty(episode.stream_icon, episode.cover, catalogDetailImage(item))) +
-                            '" alt="">' +
+                            miniaturaDoEpisodio(firstNonEmpty(episode.stream_icon, episode.cover), catalogDetailImage(item)) +
                             '<div class="series-episode-copy">' +
                             '<div class="series-episode-kicker">' +
                             (episodeLabel ? '<span class="series-episode-chip">' + escapeHtml(episodeLabel) + "</span>" : "") +

@@ -10,7 +10,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return;
   }
   window.TP_APP_RODANDO = true;
-  var APP_VERSION = "1.6.0";
+  var APP_VERSION = "1.6.1";
   function completarTexto(texto, tamanho, enchimento, noInicio) {
     texto = String(texto);
     tamanho = tamanho >> 0;
@@ -1409,7 +1409,29 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       });
     }
   }
+  function miniaturaDoEpisodio(imagem, reserva) {
+    var principal = imagem || reserva;
+    if (!principal) return '<div aria-hidden="true" class="series-episode-thumb sem-imagem"></div>';
+    return '<img aria-hidden="true" role="presentation" class="series-episode-thumb" src="' + escapeHtml(principal) + '"' + (reserva && reserva !== principal ? ' data-reserva="' + escapeHtml(reserva) + '"' : "") + ' alt="">';
+  }
+  function vigiarMiniaturasQuebradas() {
+    document.addEventListener("error", function (event) {
+      var img = event.target;
+      if (!img || img.tagName !== "IMG" || !img.classList || !img.classList.contains("series-episode-thumb")) return;
+      var reserva = img.getAttribute("data-reserva");
+      if (reserva) {
+        img.removeAttribute("data-reserva");
+        img.setAttribute("src", reserva);
+        return;
+      }
+      var vazio = document.createElement("div");
+      vazio.className = "series-episode-thumb sem-imagem";
+      vazio.setAttribute("aria-hidden", "true");
+      if (img.parentNode) img.parentNode.replaceChild(vazio, img);
+    }, true);
+  }
   function registerGlobalErrorHandlers() {
+    vigiarMiniaturasQuebradas();
     window.addEventListener("error", function (event) {
       console.log("Unhandled error:", event && event.error ? event.error : event);
       recoverFromMediaPromptFailure();
@@ -7910,7 +7932,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
         var metaParts = [];
         if (releaseLabel !== "Sem data") metaParts.push(releaseLabel);
         if (canResume) metaParts.push("Retomar em " + formatPlaybackTime(playbackEntryPosition(playbackEntry)));
-        return '<div class="series-episode-card' + (index === state.catalog.seriesDetailEpisodeIndex ? " is-selected" : "") + '">' + '<img aria-hidden="true" role="presentation" class="series-episode-thumb" src="' + escapeHtml(firstNonEmpty(episode.stream_icon, episode.cover, catalogDetailImage(item))) + '" alt="">' + '<div class="series-episode-copy">' + '<div class="series-episode-kicker">' + (episodeLabel ? '<span class="series-episode-chip">' + escapeHtml(episodeLabel) + "</span>" : "") + (canResume ? '<span class="series-episode-chip resume">Retomar</span>' : "") + "</div>" + '<p class="series-episode-title">' + escapeHtml(firstNonEmpty(episode.title, episode.name, episodeLabel ? "Episodio " + episodeLabel : "Episodio")) + "</p>" + (metaParts.length ? '<p class="series-episode-meta">' + escapeHtml(metaParts.join(" | ")) + "</p>" : "") + '<p class="series-episode-description">' + escapeHtml(trimText(firstNonEmpty(episode.plot, episode.description, "Sem sinopse para este episodio."), 220)) + "</p></div></div>";
+        return '<div class="series-episode-card' + (index === state.catalog.seriesDetailEpisodeIndex ? " is-selected" : "") + '">' + miniaturaDoEpisodio(firstNonEmpty(episode.stream_icon, episode.cover), catalogDetailImage(item)) + '<div class="series-episode-copy">' + '<div class="series-episode-kicker">' + (episodeLabel ? '<span class="series-episode-chip">' + escapeHtml(episodeLabel) + "</span>" : "") + (canResume ? '<span class="series-episode-chip resume">Retomar</span>' : "") + "</div>" + '<p class="series-episode-title">' + escapeHtml(firstNonEmpty(episode.title, episode.name, episodeLabel ? "Episodio " + episodeLabel : "Episodio")) + "</p>" + (metaParts.length ? '<p class="series-episode-meta">' + escapeHtml(metaParts.join(" | ")) + "</p>" : "") + '<p class="series-episode-description">' + escapeHtml(trimText(firstNonEmpty(episode.plot, episode.description, "Sem sinopse para este episodio."), 220)) + "</p></div></div>";
       }).join("") + "</div>";
     }
     return '<div class="series-page">' + '<div class="series-page-head">' + '<img aria-hidden="true" role="presentation" class="series-page-poster" src="' + escapeHtml(image) + '" alt="">' + '<div class="series-page-info">' + '<p class="series-page-eyebrow">Temporadas e episodios</p>' + '<p class="series-page-title">' + escapeHtml(title) + "</p>" + (tags.length ? '<div class="series-page-tags">' + tags.map(function (tag) {
