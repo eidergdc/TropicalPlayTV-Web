@@ -1,0 +1,3 @@
+{ "id": "com.tropicalplay.webteste", "version": "1.0.0", "vendor": "Tropical Play", "type": "web",
+  "main": "index.html", "title": "Tropical Play Web (teste)", "icon": "icon.png", "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080", "disableBackHistoryAPI": true }
