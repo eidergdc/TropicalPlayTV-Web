@@ -10,7 +10,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.6.3";
+    const APP_VERSION = "1.6.4";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -5391,8 +5391,11 @@
     // pagina, e a TV fixa a posicao dessa camada quando o video comeca. Movido da previa
     // para o player, ele continuava desenhado no quadradinho da previa (visto na TV).
     // La a tela cheia abre o canal de novo, num player que ja nasce em tela cheia.
+    // LG (webOS) dentro do MSX (1.6.4): o mesmo. A previa aparecia, mas ao maximizar a
+    // tela ficava preta (cliente, 26/11/2026). A LG tambem desenha o video numa camada
+    // propria da TV, e o <video> movido de lugar nao levava essa camada junto.
     function previaPodeIrParaTelaCheia() {
-        return !/Tizen/i.test(navigator.userAgent || "");
+        return !/Tizen|Web0S|webOS|NetCast/i.test(navigator.userAgent || "");
     }
 
     function promoverPreviaParaPlayer(playerState) {

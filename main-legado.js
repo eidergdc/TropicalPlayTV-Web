@@ -10,7 +10,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return;
   }
   window.TP_APP_RODANDO = true;
-  var APP_VERSION = "1.6.3";
+  var APP_VERSION = "1.6.4";
   function completarTexto(texto, tamanho, enchimento, noInicio) {
     texto = String(texto);
     tamanho = tamanho >> 0;
@@ -5242,7 +5242,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     marca.parentNode.removeChild(marca);
   }
   function previaPodeIrParaTelaCheia() {
-    return !/Tizen/i.test(navigator.userAgent || "");
+    return !/Tizen|Web0S|webOS|NetCast/i.test(navigator.userAgent || "");
   }
   function promoverPreviaParaPlayer(playerState) {
     if (promoverPreviaNoCorpo(playerState)) {
