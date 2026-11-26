@@ -54,7 +54,7 @@ body[data-player-engine="avplay"] {
 .ambient,
 .grain {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     pointer-events: none;
 }
 
@@ -534,7 +534,7 @@ body[data-player-engine="avplay"] {
 .login-background,
 .login-vignette {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     pointer-events: none;
 }
 
@@ -1167,7 +1167,7 @@ body[data-player-engine="avplay"] {
 .home-screen-background,
 .home-screen-overlay {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     pointer-events: none;
 }
 
@@ -1715,7 +1715,7 @@ body[data-player-engine="avplay"] {
 .catalog-screen::after {
     content: "";
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     pointer-events: none;
     opacity: 0;
     -webkit-transition: opacity 140ms ease;
@@ -2855,7 +2855,7 @@ body[data-player-engine="avplay"] {
 .detail-preview-fallback,
 .detail-preview-video {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -3098,7 +3098,7 @@ body[data-player-engine="avplay"] {
 
 .overlay {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     display: -webkit-box;
     display: -webkit-flex;
     display: flex;
@@ -3404,7 +3404,7 @@ body[data-player-engine="avplay"] {
 
 .search-overlay {
     position: fixed;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     z-index: 10020;
     background: rgba(2, 5, 12, 0.9);
     -webkit-box-align: start;
@@ -3416,7 +3416,7 @@ body[data-player-engine="avplay"] {
 
 .media-input-overlay {
     position: fixed;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     z-index: 10024;
     background: rgba(2, 5, 12, 0.92);
     -webkit-box-align: start;
@@ -3881,7 +3881,7 @@ body[data-player-engine="avplay"] {
 
 .player-overlay {
     position: fixed;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     width: -webkit-calc(100 * 19.2px);
     width: calc(100 * 19.2px);
     width: -webkit-calc(100 * var(--vw, 1vw));
@@ -3917,7 +3917,7 @@ body[data-player-engine="avplay"] {
 
 .player-av-object {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     display: none;
     width: 100%;
     height: 100%;
@@ -3975,7 +3975,7 @@ body[data-player-engine="avplay"] {
 
 .player-stage {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     z-index: 1;
     display: block;
     background: #000;
@@ -4068,7 +4068,7 @@ body[data-player-engine="avplay"] {
 
 .player-recovery {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     z-index: 4;
     display: -webkit-box;
     display: -webkit-flex;
@@ -4204,7 +4204,7 @@ body[data-player-engine="avplay"] {
 
 .player-progress-fill {
     position: absolute;
-    inset: 0 auto 0 0;
+    top: 0; bottom: 0; left: 0;
     width: 0;
     border-radius: 999px;
     background: -webkit-gradient(linear, left top, right top, from(rgba(255, 209, 102, 0.96)), to(rgba(255, 144, 81, 0.96)));
@@ -4320,7 +4320,7 @@ body[data-player-engine="avplay"] {
 
 .player-video {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     display: block;
     z-index: 1;
     width: 100% !important;
@@ -4343,7 +4343,7 @@ body[data-player-engine="avplay"] {
 
 .player-image {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0; /* sem "inset": Samsung 2019-2021 (Chromium < 87) */
     z-index: 1;
     display: none;
     width: 100%;
