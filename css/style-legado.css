@@ -4867,7 +4867,10 @@ html .settings-row > .settings-list {
     max-width: none;
 }
 html .settings-row > .settings-list > * + * {
-    margin-top: 18px;
+    margin-top: 12px; /* 1.7.0: era 18px; com o cartao Idioma sao 6 e precisam caber */
+}
+html .settings-row > .settings-list > .settings-card {
+    padding-top: 14px; padding-bottom: 14px; /* 1.7.0: era 24px */
 }
 html .settings-row > .settings-support {
     -webkit-box-flex: 0;

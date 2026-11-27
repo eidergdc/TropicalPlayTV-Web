@@ -10,7 +10,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.6.9";
+    const APP_VERSION = "1.7.0";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -247,6 +247,13 @@
             title: "Limpar assistidos",
             subtitle: "Apaga a lista de filmes e series assistidos recentemente.",
             badge: "DEL",
+        },
+        {
+            // 1.7.0: troca o idioma do app (lib/idiomas.js). O texto ao lado diz o atual.
+            id: "idioma",
+            title: "Idioma",
+            subtitle: "Português, Español ou English. OK para trocar.",
+            badge: "LNG",
         },
         {
             id: "logout",
@@ -867,7 +874,7 @@
         enforceVoiceGuideSuppression();
 
         try {
-            document.documentElement.setAttribute("lang", "pt-BR");
+            document.documentElement.setAttribute("lang", window.TPIdioma && window.TPIdioma.atual() !== "pt" ? window.TPIdioma.atual() : "pt-BR");
         } catch (error) {
             console.log("Voice guide language attribute skipped:", error);
         }
@@ -7199,6 +7206,14 @@
             return;
         }
 
+        if (actionId === "idioma") {
+            if (window.TPIdioma) {
+                window.TPIdioma.proximo();
+                renderSettingsScreen();
+            }
+            return;
+        }
+
         if (actionId === "renovar") {
             abrirRenovacao(false);
             return;
@@ -8284,6 +8299,13 @@
         syncHomeFocus();
     }
 
+    // "Idioma: Español" - o nome de cada idioma fica na propria lingua (e o que a pessoa
+    // procura); "Idioma" vira "Language" em ingles pela camada de traducao. OK troca.
+    function textoDoIdioma() {
+        const nome = window.TPIdioma ? window.TPIdioma.nomeBonito() : "Português";
+        return "Idioma: " + nome;
+    }
+
     function renderSettingsScreen() {
         dom.settingsSummary.innerHTML = [
             metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"),
@@ -8305,7 +8327,7 @@
                 "</div>" +
                 '<div class="settings-body">' +
                 '<p class="action-title">' +
-                escapeHtml(action.title) +
+                escapeHtml(action.id === "idioma" ? textoDoIdioma() : action.title) +
                 "</p>" +
                 '<p class="action-copy">' +
                 escapeHtml(action.subtitle) +

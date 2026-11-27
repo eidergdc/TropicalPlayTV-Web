@@ -10,7 +10,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return;
   }
   window.TP_APP_RODANDO = true;
-  var APP_VERSION = "1.6.9";
+  var APP_VERSION = "1.7.0";
   function completarTexto(texto, tamanho, enchimento, noInicio) {
     texto = String(texto);
     tamanho = tamanho >> 0;
@@ -220,6 +220,11 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     title: "Limpar assistidos",
     subtitle: "Apaga a lista de filmes e series assistidos recentemente.",
     badge: "DEL"
+  }, {
+    id: "idioma",
+    title: "Idioma",
+    subtitle: "Português, Español ou English. OK para trocar.",
+    badge: "LNG"
   }, {
     id: "logout",
     title: "Sair da conta",
@@ -886,7 +891,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
   function suppressVoiceGuideNarration() {
     enforceVoiceGuideSuppression();
     try {
-      document.documentElement.setAttribute("lang", "pt-BR");
+      document.documentElement.setAttribute("lang", window.TPIdioma && window.TPIdioma.atual() !== "pt" ? window.TPIdioma.atual() : "pt-BR");
     } catch (error) {
       console.log("Voice guide language attribute skipped:", error);
     }
@@ -6873,29 +6878,39 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             abrirSenhaParental("atual", null);
             return _context24.a(2);
           case 3:
-            if (!(actionId === "renovar")) {
+            if (!(actionId === "idioma")) {
               _context24.n = 4;
+              break;
+            }
+            if (window.TPIdioma) {
+              window.TPIdioma.proximo();
+              renderSettingsScreen();
+            }
+            return _context24.a(2);
+          case 4:
+            if (!(actionId === "renovar")) {
+              _context24.n = 5;
               break;
             }
             abrirRenovacao(false);
             return _context24.a(2);
-          case 4:
+          case 5:
             if (!(actionId === "limpar")) {
-              _context24.n = 6;
+              _context24.n = 7;
               break;
             }
             if (!(!confirmacaoDeLimpeza || Date.now() - confirmacaoDeLimpeza > 5000)) {
-              _context24.n = 5;
+              _context24.n = 6;
               break;
             }
             confirmacaoDeLimpeza = Date.now();
             showToast("Pressione OK de novo para apagar a lista de assistidos.", "success");
             return _context24.a(2);
-          case 5:
+          case 6:
             confirmacaoDeLimpeza = 0;
             limparAssistidos();
             return _context24.a(2);
-          case 6:
+          case 7:
             if (actionId === "logout") {
               controleParentalLiberado = false;
               limparFiltroAdulto();
@@ -6903,7 +6918,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               setScreen("code");
               showToast("Sessao removida desta TV.", "success");
             }
-          case 7:
+          case 8:
             return _context24.a(2);
         }
       }, _callee24);
@@ -7578,13 +7593,17 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     dom.homeActionNodes = Array.from(dom.homeActions.querySelectorAll(".action-card"));
     syncHomeFocus();
   }
+  function textoDoIdioma() {
+    var nome = window.TPIdioma ? window.TPIdioma.nomeBonito() : "Português";
+    return "Idioma: " + nome;
+  }
   function renderSettingsScreen() {
     dom.settingsSummary.innerHTML = [metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"), metaCard("Codigo", state.profile && state.profile.userNumber ? state.profile.userNumber : "Sem codigo"), cartaoDoVencimento(), metaCard("ID do aparelho", idDoAparelhoParaMostrar())].join("");
     renderSuporte();
     atualizarDadosDoPlano();
     carregarSuporte();
     dom.settingsList.innerHTML = SETTINGS_ACTIONS.map(function (action) {
-      return '<div class="settings-card ' + escapeHtml(action.id) + '">' + '<div class="settings-badge">' + escapeHtml(action.badge) + "</div>" + '<div class="settings-body">' + '<p class="action-title">' + escapeHtml(action.title) + "</p>" + '<p class="action-copy">' + escapeHtml(action.subtitle) + "</p></div></div>";
+      return '<div class="settings-card ' + escapeHtml(action.id) + '">' + '<div class="settings-badge">' + escapeHtml(action.badge) + "</div>" + '<div class="settings-body">' + '<p class="action-title">' + escapeHtml(action.id === "idioma" ? textoDoIdioma() : action.title) + "</p>" + '<p class="action-copy">' + escapeHtml(action.subtitle) + "</p></div></div>";
     }).join("");
     dom.settingsNodes = Array.from(dom.settingsList.querySelectorAll(".settings-card"));
     syncSettingsFocus();
