@@ -10,7 +10,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return;
   }
   window.TP_APP_RODANDO = true;
-  var APP_VERSION = "1.6.5";
+  var APP_VERSION = "1.6.6";
   function completarTexto(texto, tamanho, enchimento, noInicio) {
     texto = String(texto);
     tamanho = tamanho >> 0;

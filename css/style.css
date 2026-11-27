@@ -976,20 +976,20 @@ body[data-player-engine="avplay"] {
     height: 100%;
     object-fit: cover;
     object-position: center center;
-    opacity: 0.48;
+    opacity: 0.85; /* 1.6.6: era 0.48; o fundo voltou a aparecer como antes na Samsung */
     transform: scale(1.04);
 }
 
 .home-screen-background {
     background:
         radial-gradient(circle at top right, rgba(255, 209, 102, 0.09), transparent 34%),
-        linear-gradient(180deg, rgba(5, 11, 18, 0.3), rgba(5, 11, 18, 0.62));
+        linear-gradient(180deg, rgba(5, 11, 18, 0.1), rgba(5, 11, 18, 0.35));
 }
 
 .home-screen-overlay {
     background:
-        linear-gradient(180deg, rgba(6, 12, 20, 0.62), rgba(6, 12, 20, 0.82) 40%, rgba(6, 12, 20, 0.94)),
-        linear-gradient(90deg, rgba(5, 10, 16, 0.32), rgba(5, 10, 16, 0.14));
+        linear-gradient(180deg, rgba(6, 12, 20, 0.35), rgba(6, 12, 20, 0.5) 40%, rgba(6, 12, 20, 0.78)),
+        linear-gradient(90deg, rgba(5, 10, 16, 0.25), rgba(5, 10, 16, 0.1));
 }
 
 .fire-home-shell {

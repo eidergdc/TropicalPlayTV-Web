@@ -10,7 +10,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.6.5";
+    const APP_VERSION = "1.6.6";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,

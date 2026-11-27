@@ -1176,7 +1176,7 @@ body[data-player-engine="avplay"] {
     height: 100%;
     object-fit: cover;
     object-position: center center;
-    opacity: 0.48;
+    opacity: 0.85; /* 1.6.6: era 0.48; o fundo voltou a aparecer como antes na Samsung */
     -webkit-transform: scale(1.04);
             transform: scale(1.04);
 }
@@ -1184,19 +1184,19 @@ body[data-player-engine="avplay"] {
 .home-screen-background {
     background:
         radial-gradient(circle at top right, rgba(255, 209, 102, 0.09), transparent 34%),
-        -webkit-gradient(linear, left top, left bottom, from(rgba(5, 11, 18, 0.3)), to(rgba(5, 11, 18, 0.62)));
+        -webkit-gradient(linear, left top, left bottom, from(rgba(5, 11, 18, 0.1)), to(rgba(5, 11, 18, 0.35)));
     background:
         radial-gradient(circle at top right, rgba(255, 209, 102, 0.09), transparent 34%),
-        linear-gradient(180deg, rgba(5, 11, 18, 0.3), rgba(5, 11, 18, 0.62));
+        linear-gradient(180deg, rgba(5, 11, 18, 0.1), rgba(5, 11, 18, 0.35));
 }
 
 .home-screen-overlay {
     background:
-        -webkit-gradient(linear, left top, left bottom, from(rgba(6, 12, 20, 0.62)), color-stop(40%, rgba(6, 12, 20, 0.82)), to(rgba(6, 12, 20, 0.94))),
-        -webkit-gradient(linear, left top, right top, from(rgba(5, 10, 16, 0.32)), to(rgba(5, 10, 16, 0.14)));
+        -webkit-gradient(linear, left top, left bottom, from(rgba(6, 12, 20, 0.35)), color-stop(40%, rgba(6, 12, 20, 0.5)), to(rgba(6, 12, 20, 0.78))),
+        -webkit-gradient(linear, left top, right top, from(rgba(5, 10, 16, 0.25)), to(rgba(5, 10, 16, 0.1)));
     background:
-        linear-gradient(180deg, rgba(6, 12, 20, 0.62), rgba(6, 12, 20, 0.82) 40%, rgba(6, 12, 20, 0.94)),
-        linear-gradient(90deg, rgba(5, 10, 16, 0.32), rgba(5, 10, 16, 0.14));
+        linear-gradient(180deg, rgba(6, 12, 20, 0.35), rgba(6, 12, 20, 0.5) 40%, rgba(6, 12, 20, 0.78)),
+        linear-gradient(90deg, rgba(5, 10, 16, 0.25), rgba(5, 10, 16, 0.1));
 }
 
 .fire-home-shell {
