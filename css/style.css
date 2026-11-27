@@ -4517,5 +4517,20 @@ html .catalog-screen[data-variant] .series-page .is-focused .series-episode-titl
     to { opacity: 1; letter-spacing: 0.06em; transform: translateY(0); }
 }
 @keyframes aberturaLinha { from { width: 0; } to { width: 460px; } }
+/* 1.6.5: abertura leve - LG antiga (webOS 5 ou anterior, ver index.html). Sem desfoque,
+   sem parede de capas e sem animacao: tudo ja aparece parado. A TV travava com as
+   camadas grandes desfocadas e animadas e a tela parava de se redesenhar. */
+.abertura-leve .abertura-fundo { filter: none; animation: none; transform: none; top: 0; left: 0; right: 0; bottom: 0; }
+.abertura-leve .abertura-parede { display: none; }
+.abertura-leve .abertura-brilho { animation: none; opacity: 1; }
+.abertura-leve .abertura-boia { animation: none; will-change: auto; transform: none; }
+.abertura-leve .abertura-logo,
+.abertura-leve .abertura-nome,
+.abertura-leve .abertura-barra,
+.abertura-leve .abertura-etapa { animation: none; opacity: 1; transform: none; }
+.abertura-leve .abertura-nome { letter-spacing: 0.06em; text-shadow: none; }
+.abertura-leve .abertura-linha { animation: none; width: 460px; }
+.abertura-leve .abertura-barra-cheia { transition: none; box-shadow: none; }
+.abertura-leve .abertura { transition: none; }
 /* Durante a abertura o botao "Voltar" do mouse/toque nao aparece por cima dela. */
 .abertura ~ #botaoVoltarNaTela { display: none !important; }
