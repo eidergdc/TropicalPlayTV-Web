@@ -10,7 +10,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return;
   }
   window.TP_APP_RODANDO = true;
-  var APP_VERSION = "1.6.8";
+  var APP_VERSION = "1.6.9";
   function completarTexto(texto, tamanho, enchimento, noInicio) {
     texto = String(texto);
     tamanho = tamanho >> 0;
@@ -3200,6 +3200,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
             }).catch(function (updateError) {
               console.log("Session claim update failed:", updateError);
             });
+            avisarAparelhoNoHistorico(trimmedCode, true);
             profile.activeSessionId = sessionId;
             profile.activeDeviceId = deviceId;
             profile.activePlatform = SESSION_PLATFORM_LABEL;
@@ -3306,6 +3307,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
               lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             });
           case 5:
+            avisarAparelhoNoHistorico(targetCode, false);
             _context8.n = 7;
             break;
           case 6:
@@ -3318,6 +3320,37 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       }, _callee8, null, [[1, 6]]);
     }));
     return _updateSessionHeartbeat.apply(this, arguments);
+  }
+  var HISTORICO_DE_APARELHOS = "https://tropicalplaymsx.web.app/msx/aparelho";
+  var CHAVE_APARELHO_AVISADO = "tropical.aparelhoAvisado";
+  var INTERVALO_DO_AVISO_MS = 6 * 60 * 60 * 1000;
+  function avisarAparelhoNoHistorico(codigo, agoraMesmo) {
+    try {
+      var code = String(codigo || "").trim();
+      if (!code || typeof fetch !== "function") return;
+      var ultimo = {};
+      try {
+        ultimo = JSON.parse(localStorage.getItem(CHAVE_APARELHO_AVISADO) || "{}") || {};
+      } catch (e) {
+        ultimo = {};
+      }
+      if (!agoraMesmo && ultimo.code === code && Date.now() - (Number(ultimo.em) || 0) < INTERVALO_DO_AVISO_MS) return;
+      localStorage.setItem(CHAVE_APARELHO_AVISADO, JSON.stringify({
+        code: code,
+        em: Date.now()
+      }));
+      fetch(HISTORICO_DE_APARELHOS, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain"
+        },
+        body: JSON.stringify({
+          code: code,
+          aparelho: getOrCreateDeviceId(),
+          plataforma: SESSION_PLATFORM_LABEL
+        })
+      }).catch(function () {});
+    } catch (error) {}
   }
   function idDoAparelhoParaMostrar() {
     try {

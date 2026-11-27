@@ -10,7 +10,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.6.8";
+    const APP_VERSION = "1.6.9";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -3335,6 +3335,7 @@
                 .catch(function (updateError) {
                     console.log("Session claim update failed:", updateError);
                 });
+            avisarAparelhoNoHistorico(trimmedCode, true);
 
             profile.activeSessionId = sessionId;
             profile.activeDeviceId = deviceId;
@@ -3415,8 +3416,37 @@
                 activePlatform: SESSION_PLATFORM_LABEL,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
             });
+            avisarAparelhoNoHistorico(targetCode, false);
         } catch (error) {
             console.log("Session heartbeat failed:", error);
+        }
+    }
+
+    // 1.6.9: historico de aparelhos de cada codigo, para o painel admin. Cada aparelho que
+    // entra com o codigo fica guardado no devices do cliente (rota /msx/aparelho do projeto
+    // MSX: as regras do banco nao deixam o app gravar ali direto). O painel mostra a lista
+    // na ficha e acha pela busca todos os codigos em que um aparelho ja entrou. Avisa ao
+    // entrar com o codigo e, depois, no maximo a cada 6 horas (a batida de presenca roda a
+    // cada 45 s). Falhar aqui nunca atrapalha o app.
+    const HISTORICO_DE_APARELHOS = "https://tropicalplaymsx.web.app/msx/aparelho";
+    const CHAVE_APARELHO_AVISADO = "tropical.aparelhoAvisado";
+    const INTERVALO_DO_AVISO_MS = 6 * 60 * 60 * 1000;
+
+    function avisarAparelhoNoHistorico(codigo, agoraMesmo) {
+        try {
+            const code = String(codigo || "").trim();
+            if (!code || typeof fetch !== "function") return;
+            let ultimo = {};
+            try { ultimo = JSON.parse(localStorage.getItem(CHAVE_APARELHO_AVISADO) || "{}") || {}; } catch (e) { ultimo = {}; }
+            if (!agoraMesmo && ultimo.code === code && Date.now() - (Number(ultimo.em) || 0) < INTERVALO_DO_AVISO_MS) return;
+            localStorage.setItem(CHAVE_APARELHO_AVISADO, JSON.stringify({ code: code, em: Date.now() }));
+            fetch(HISTORICO_DE_APARELHOS, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ code: code, aparelho: getOrCreateDeviceId(), plataforma: SESSION_PLATFORM_LABEL }),
+            }).catch(function () {});
+        } catch (error) {
+            // O historico e so para o atendimento: nunca pode impedir o app de seguir.
         }
     }
 
