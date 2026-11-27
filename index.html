@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tropical Play</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.6.6">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=1.6.7">
     <script>
     // TVs antigas (Samsung 2018, Chromium 56): sem CSS Grid o layout desmontava - na tela
     // do codigo o teclado saia numa coluna so. Nelas entra o css/antigas.css, o mesmo
@@ -30,16 +30,16 @@
         if (/[?&]legado=1/.test(location.search)) legado = true;
         if (legado) {
             document.documentElement.className += " app-legado";
-            document.write('<link rel="stylesheet" type="text/css" href="css/style-legado.css?v=1.6.6">');
+            document.write('<link rel="stylesheet" type="text/css" href="css/style-legado.css?v=1.6.7">');
             // 1.5.9: os complementos (Promise, Symbol, fetch...) entram AQUI, antes da
             // biblioteca do Firebase - carregados depois dela, o Firebase nao iniciava na
             // Samsung 2016 ("Firebase indisponivel no momento").
-            document.write('<script src="lib/legado/polyfills.js?v=1.6.6"><\/script>');
+            document.write('<script src="lib/legado/polyfills.js?v=1.6.7"><\/script>');
         }
         var temGrid = window.CSS && CSS.supports && CSS.supports("display", "grid");
         if (temGrid && !/[?&]semgrid=1/.test(location.search)) return;
         document.documentElement.className += " sem-grid";
-        document.write('<link rel="stylesheet" type="text/css" href="css/' + (legado ? "antigas-legado" : "antigas") + '.css?v=1.6.6">');
+        document.write('<link rel="stylesheet" type="text/css" href="css/' + (legado ? "antigas-legado" : "antigas") + '.css?v=1.6.7">');
     })();
     </script>
     <style>
@@ -162,11 +162,11 @@
         try { new Function("async function f() { await 0; } let a = 1; const b = 2;"); } catch (e) { moderno = false; }
         if (/[?&]legado=1/.test(location.search)) moderno = false;
         if (!moderno) {
-            document.write('<script src="./main-legado.js?v=1.6.6"><\/script>');
+            document.write('<script src="./main-legado.js?v=1.6.7"><\/script>');
         }
     })();
     </script>
-    <script src="./main.js?v=1.6.6" defer></script>
+    <script src="./main.js?v=1.6.7" defer></script>
 </head>
 <body>
     <!-- Abertura do app (1.4.4): cobre o carregamento ate a tela inicial. Fica fora do
@@ -300,6 +300,8 @@
             </section>
 
             <section role="presentation" class="screen code-screen" id="screenCode">
+                <!-- 1.6.7: versao no alto, ao centro e maior: legivel nas fotos que os clientes mandam. -->
+                <p class="app-version app-version-topo app-version-login" id="loginAppVersion"></p>
                 <div class="login-background"></div>
                 <div class="login-vignette"></div>
                 <div class="login-layout">
@@ -311,7 +313,6 @@
                         <div class="login-panel-head">
                             <h2 role="presentation">Bem-vindo ao TP Media</h2>
                             <p class="panel-subtitle">Use o teclado numerico fixo do controle para inserir seu codigo.</p>
-                            <p class="app-version app-version-login" id="loginAppVersion"></p>
                             <p class="login-session-notice hidden" id="loginSessionNotice"></p>
                         </div>
 
@@ -399,6 +400,7 @@
             </section>
 
             <section role="presentation" class="screen home-screen" id="screenHome">
+                <p class="app-version app-version-topo app-version-home" id="homeAppVersion"></p>
                 <img role="presentation" aria-hidden="true" class="home-screen-image" src="assets/intro-h-blur.jpeg" alt="">
                 <div class="home-screen-background"></div>
                 <div class="home-screen-overlay"></div>
@@ -409,7 +411,6 @@
                             <img role="presentation" aria-hidden="true" class="fire-home-logo" src="assets/icon.png" alt="">
                             <div class="fire-home-copy">
                                 <h2 role="presentation" id="homeTitle">Tropical Play</h2>
-                                <p class="app-version app-version-home" id="homeAppVersion"></p>
                             </div>
                         </div>
 
