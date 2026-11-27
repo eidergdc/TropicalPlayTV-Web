@@ -10,7 +10,7 @@
     // cada digito vai de 0 a 9 e vira o da esquerda (1.1.9 -> 1.2.0) -
     // e o que mostra, olhando a TV, se a versao nova ja chegou. Ao subir, trocar tambem o
     // ?v= de index.html e de msx/menu.json.
-    const APP_VERSION = "1.6.7";
+    const APP_VERSION = "1.6.8";
 
     // TVs antigas (Samsung 2018, Chromium 56) nao tem String.padStart/padEnd (Chrome 57).
     // Sem eles a formatacao de horario quebrava o desenho do catalogo: categorias, canais,
@@ -3417,6 +3417,21 @@
             });
         } catch (error) {
             console.log("Session heartbeat failed:", error);
+        }
+    }
+
+    // 1.6.8: ID do aparelho nas Configuracoes, com cara de MAC (A3:7F:2C:91:0B:E4). O app
+    // web nao consegue ler o MAC de verdade da TV; isto sao os 12 primeiros digitos do
+    // identificador que o app cria na primeira abertura e grava no Firebase, no codigo do
+    // cliente, como activeDeviceId. Serve para saber se dois testes sao da mesma TV.
+    // Apagar os dados do app (ou reinstalar o MSX) gera um ID novo.
+    function idDoAparelhoParaMostrar() {
+        try {
+            const hex = String(getOrCreateDeviceId()).replace(/[^0-9a-f]/gi, "").toUpperCase();
+            if (hex.length < 12) return hex || "";
+            return hex.slice(0, 12).match(/../g).join(":");
+        } catch (error) {
+            return "";
         }
     }
 
@@ -8244,6 +8259,7 @@
             metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"),
             metaCard("Codigo", state.profile && state.profile.userNumber ? state.profile.userNumber : "Sem codigo"),
             cartaoDoVencimento(),
+            metaCard("ID do aparelho", idDoAparelhoParaMostrar()),
         ].join("");
         renderSuporte();
         atualizarDadosDoPlano();

@@ -1666,7 +1666,7 @@ body[data-player-engine="avplay"] {
 
 .settings-summary {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr)); /* 1.6.8: + ID do aparelho */
     gap: 18px;
     margin-bottom: 28px;
 }

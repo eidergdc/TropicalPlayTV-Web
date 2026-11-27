@@ -10,7 +10,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     return;
   }
   window.TP_APP_RODANDO = true;
-  var APP_VERSION = "1.6.7";
+  var APP_VERSION = "1.6.8";
   function completarTexto(texto, tamanho, enchimento, noInicio) {
     texto = String(texto);
     tamanho = tamanho >> 0;
@@ -3318,6 +3318,15 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       }, _callee8, null, [[1, 6]]);
     }));
     return _updateSessionHeartbeat.apply(this, arguments);
+  }
+  function idDoAparelhoParaMostrar() {
+    try {
+      var hex = String(getOrCreateDeviceId()).replace(/[^0-9a-f]/gi, "").toUpperCase();
+      if (hex.length < 12) return hex || "";
+      return hex.slice(0, 12).match(/../g).join(":");
+    } catch (error) {
+      return "";
+    }
   }
   function getOrCreateDeviceId() {
     return getOrCreateLocalId(STORAGE_KEYS.deviceId);
@@ -7537,7 +7546,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
     syncHomeFocus();
   }
   function renderSettingsScreen() {
-    dom.settingsSummary.innerHTML = [metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"), metaCard("Codigo", state.profile && state.profile.userNumber ? state.profile.userNumber : "Sem codigo"), cartaoDoVencimento()].join("");
+    dom.settingsSummary.innerHTML = [metaCard("Servidor conectado", state.selectedServer ? state.selectedServer.name : "Nao definido"), metaCard("Codigo", state.profile && state.profile.userNumber ? state.profile.userNumber : "Sem codigo"), cartaoDoVencimento(), metaCard("ID do aparelho", idDoAparelhoParaMostrar())].join("");
     renderSuporte();
     atualizarDadosDoPlano();
     carregarSuporte();
